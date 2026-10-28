@@ -33,6 +33,7 @@ import com.bytedance.chemistrylab.core.galvanic.Galv
 import com.bytedance.chemistrylab.core.galvanic.GalvanicCell
 import com.bytedance.chemistrylab.core.galvanic.HalfCell
 import com.bytedance.chemistrylab.core.galvanic.Metal
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -1018,6 +1019,26 @@ object DaniellDemo : SpecDemo() {
     private var switchTaps = 0
     private var bridgeTaps = 0
     private var mark = 0
+
+    // ---- background card (📖): context for a viewer who has never met a galvanic cell
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("桌上两只烧杯：锌片泡在无色硫酸锌里，铜片泡在蓝色硫酸铜里，中间用装硝酸钾凝胶的 U 形管（盐桥）连通。上方电路板有电压表、开关、小风扇和电流表。青色小珠是导线里的电子，紫色是盐桥里的离子；两扇放大窗看金属表面原子的变化。捏盐桥、捏开关，或捏金属片换成镁、铁、铅、银。", "Two beakers: a zinc strip in colourless zinc sulfate and a copper strip in blue copper sulfate, joined by a U-tube of potassium nitrate gel, the salt bridge. Above: a voltmeter, a switch, a small fan and an ammeter. Cyan beads are electrons in the wire, violet ones ions in the bridge, and two magnifier windows watch the metal surfaces. Pinch the bridge, the switch, or a strip to swap in magnesium, iron, lead or silver."),
+        ),
+        About.Page(
+            Bi("一块稳定的电池", "A battery that kept going"),
+            Bi("1800 年伏打发明了电堆，人类第一次有了持续的电流，但它的电压用一会儿就往下掉。1836 年，英国化学家丹尼尔把锌和铜分装在两种溶液里，中间隔开，做出了电压稳定、能长时间供电的电池。那时电报刚刚兴起，丹尼尔电池成了早期电报线路的可靠电源。", "Volta's pile of 1800 gave the first steady electric current, but its voltage sagged after a short while. In 1836 the English chemist John Daniell put zinc and copper in two separate solutions, kept apart, and got a cell whose voltage held steady for a long time. The electric telegraph was just taking off, and the Daniell cell became a dependable power source for early telegraph lines."),
+        ),
+        About.Page(
+            Bi("核心想法：两条路缺一不可", "Key idea: two paths, one loop"),
+            Bi("锌比铜更愿意丢电子。锌直接泡进硫酸铜，电子当场交给铜离子，只放出热。把两边分开，电子只能绕道走导线，途中转动风扇。但回路要闭合两次：电子走导线，离子走盐桥。像一圈环形水渠，水车装在导线这段，盐桥是水流回去的那段，断了哪一段都停。锌铜之间是 1.10 V。", "Zinc gives up electrons more readily than copper. Drop zinc straight into copper sulfate and the electrons jump across on the spot, giving only heat. Separate the two and the electrons must detour through the wire, turning the fan on the way. But the loop must close twice: electrons through the wire, ions through the bridge. Like a ring-shaped water channel: break either part and the flow stops. Zinc against copper gives 1.10 V."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("你手里的每节电池都是同一个思路：两种得失电子能力不同的材料，加一条只让离子通过的通道。碱性电池用锌和二氧化锰；锂电池里锂离子穿过隔膜来回跑，隔膜就是今天的“盐桥”。锂在金属序列里排得最远，所以单节锂电池电压可达约 3.7 V。船身上焊锌块，也是让锌替钢铁先被腐蚀。", "Every battery you own follows the same plan: two materials that differ in how eagerly they give up electrons, plus a path that lets only ions through. Alkaline cells pair zinc with manganese dioxide; in a lithium-ion cell the ions shuttle through a separator, today's salt bridge. Lithium sits furthest out in the series, so one cell gives about 3.7 V. Zinc blocks on ship hulls corrode in place of the steel by the same rule."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

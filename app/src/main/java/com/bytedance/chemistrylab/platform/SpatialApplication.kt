@@ -17,6 +17,7 @@ class SpatialApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         com.bytedance.chemistrylab.lab.Lang.init(this)
+        com.bytedance.chemistrylab.lab.LabSettings.init(this)
         launch(::mainApp)
         // DEBUG builds only: `adb shell am broadcast -a com.bytedance.chemistrylab.SHOW --es demo <id>`
         // switches demo without gaze/pinch, so the screenshot review loop can run unattended.

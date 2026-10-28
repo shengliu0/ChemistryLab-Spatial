@@ -27,6 +27,7 @@ import com.bytedance.chemistrylab.core.catalysis.Catalyst
 import com.bytedance.chemistrylab.core.catalysis.Kinetics
 import com.bytedance.chemistrylab.core.catalysis.Peroxide
 import com.bytedance.chemistrylab.core.catalysis.Reactor
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -897,6 +898,26 @@ object ElephantDemo : SpecDemo() {
     /** The reactor A had when the step began: a new pour makes a new Reactor. */
     private var lsRun0: Reactor? = null
     private const val GOAL_HALF_S = 6.0
+
+    // ---- background card (📖): context for a viewer who has never met catalysis
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("两只 1 L 量筒，装着过氧化氢（双氧水）和洗洁精。A 倒入催化剂，B 作对照，同时倒。A 里放出的氧气被洗洁精裹成泡沫，猛地冲出量筒，像挤出一条巨型牙膏。捏架子上的瓶子选催化剂（碘化钾、酵母、二氧化锰或清水），捏烧杯倒入，捏带火星的木条伸进泡沫，捏量筒重装。30% 双氧水腐蚀性强，泡沫滚烫，这里只做虚拟演示。", "Two 1 L cylinders hold hydrogen peroxide and dish soap. A gets a catalyst, B is the control, poured together. In A the oxygen given off is trapped by the soap as foam that shoots out like giant toothpaste. Pinch a bottle to pick a catalyst (KI, yeast, MnO₂ or plain water), the beaker to pour, the glowing splint to poke the foam, the cylinder to refill. 30 % peroxide is corrosive and the foam scalding: virtual only."),
+        ),
+        About.Page(
+            Bi("不被用掉的帮手", "The helper that is not used up"),
+            Bi("过氧化氢 1818 年由法国化学家泰纳尔首次制得。它储着不少能量，却能在瓶里放很久不怎么分解。为什么加一点碘化钾、酵母或二氧化锰，它就一下子爆发？1835 年，瑞典化学家贝采利乌斯给这类现象起名“催化”：有些物质能大大加快反应，自己却不被消耗。", "Hydrogen peroxide was first made by the French chemist Thénard in 1818. It stores plenty of energy, yet can sit in a bottle for a long time with little change. So why does a pinch of potassium iodide, yeast or manganese dioxide make it erupt? In 1835 the Swedish chemist Berzelius named the effect catalysis: some substances speed a reaction up enormously while not being used up themselves."),
+        ),
+        About.Page(
+            Bi("核心想法：在山里开隧道", "Key idea: a tunnel through"),
+            Bi("2 H₂O₂ → 2 H₂O + O₂ 会放热，但要先翻过一座高能垒（约 75 kJ/mol），所以平时很慢。催化剂像在山里挖了条隧道：I⁻ 抓住 H₂O₂ 变成 IO⁻，再把它变回 I⁻，路矮了（约 56 kJ/mol），酵母里的过氧化氢酶更矮（约 8）。放出的热又让反应更快，于是越来越猛。催化剂转一圈就回到原样。", "2 H₂O₂ → 2 H₂O + O₂ releases heat, but first it must climb a high energy barrier (about 75 kJ/mol), so normally it is slow. A catalyst digs a tunnel: I⁻ grabs H₂O₂ to become IO⁻, then turns back into I⁻, a lower road (about 56 kJ/mol); the catalase in yeast is lower still (about 8). The released heat speeds it further, so it runs away. After each loop the catalyst is back as it was, none lost."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("你身体里就有：细胞会产生少量过氧化氢，过氧化氢酶每秒能分解上百万个它，保护细胞。伤口上抹 3% 双氧水会冒泡，就是血液和组织里的这种酶在工作。今天大多数化工产品的生产都离不开催化剂，汽车尾气净化器里也是催化剂在把有害气体变成无害气体。", "It happens in you: your cells make small amounts of hydrogen peroxide, and the enzyme catalase breaks down millions of its molecules per second to protect them. The fizz when 3 % peroxide touches a cut is that enzyme at work in blood and tissue. Most chemical products today are made with the help of catalysts, and the catalytic converter in a car turns harmful exhaust gases into harmless ones."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

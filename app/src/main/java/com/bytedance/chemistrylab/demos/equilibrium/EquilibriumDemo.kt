@@ -40,6 +40,7 @@ import com.bytedance.chemistrylab.core.equilibrium.Dimerization
 import com.bytedance.chemistrylab.core.equilibrium.MicroBox
 import com.bytedance.chemistrylab.core.equilibrium.NO2Optics
 import com.bytedance.chemistrylab.core.equilibrium.Vessel
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -764,6 +765,26 @@ object EquilibriumDemo : SpecDemo() {
         val b = vessels[1]; val tK = tC + Dimerization.KELVIN
         return Dimerization.moleFractionNO2(Dimerization.alphaEq(b.units * Dimerization.R * tK / b.volume / Dimerization.P_STD, tK))
     }
+
+    // ---- background card (📖): context for a viewer who has never met chemical equilibrium
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("三只一样的密封烧瓶，装着同一份二氧化氮（棕色）和四氧化二氮（无色）的混合气，分别泡在冰水、室温水和热水里，后面是灯箱。颜色越深，棕色的 NO₂ 越多。捏烧瓶选中它，捏水浴把它放进去；烧瓶 B 带注射器，推活塞压缩气体。上方分子窗口里，NO₂ 两两结合、N₂O₄ 又拆开。NO₂ 有毒，真实演示只用密封管。", "Three identical sealed flasks hold the same mix of brown nitrogen dioxide and colourless dinitrogen tetroxide, in ice, room-temperature and hot water baths before a light box. The darker the flask, the more brown NO₂. Pinch a flask, then a bath to put it in; flask B has a syringe whose plunger squeezes the gas. Above it, a molecule window shows NO₂ pairing up and N₂O₄ splitting. NO₂ is toxic: real demos use sealed tubes."),
+        ),
+        About.Page(
+            Bi("勒夏特列的规律", "Le Chatelier's rule"),
+            Bi("有些反应不会进行到底，而是停在“一部分反应物、一部分产物”的状态。1884 年，法国化学家勒夏特列总结出一条规律：处于平衡的反应受到打扰（改变温度、压强或浓度），就会朝削弱这个打扰的方向移动。二十多年后，哈伯据此选定了合成氨的高压条件，人类第一次能从空气里大量制造化肥。", "Some reactions never run to completion; they settle with some reactants and some products left. In 1884 the French chemist Le Chatelier stated a rule: disturb a reaction at equilibrium (change temperature, pressure or concentration) and it shifts in the direction that eases the disturbance. About 25 years later Haber used this to choose high pressure for making ammonia, and fertiliser could at last be made from the air."),
+        ),
+        About.Page(
+            Bi("核心想法：两边扔球", "Key idea: balls over a fence"),
+            Bi("2 NO₂（棕）⇌ N₂O₄（无色），结合时放热。平衡不是反应停了，而是正反两个方向一样快：像两个院子隔着篱笆互扔皮球，扔过去和扔回来的一样多，两边球数就不变。降温，平衡移向放热的一边（N₂O₄），颜色变浅；加热则变深。压缩时先因拥挤变深，再移向分子更少的 N₂O₄，慢慢变浅。", "2 NO₂ (brown) ⇌ N₂O₄ (colourless), and joining releases heat. Equilibrium does not mean the reaction stopped: both directions run at the same speed. Picture two yards throwing balls over a fence: as many go each way, so each side's count stays put. Cooling shifts it to the heat-releasing side, N₂O₄, so the colour fades; heating darkens it. Squeezing first darkens it (crowding), then it drifts paler toward fewer molecules, N₂O₄."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("合成氨的哈伯-博施法，温度和压强就是按平衡规律挑的；据估计，它生产的化肥养活了世界近一半人口。血红蛋白和氧的结合也是平衡：肺里氧多就结合，组织里氧少就放开。城市上空偶尔能看到的棕色烟雾，里面就有汽车尾气生成的 NO₂。", "The Haber-Bosch process picks its temperature and pressure by these equilibrium rules, and its fertiliser is estimated to feed close to half the world's people. Haemoglobin and oxygen are an equilibrium too: where oxygen is plentiful, in the lungs, they bind; where it is scarce, in the tissues, they let go. The brown haze sometimes seen over cities contains NO₂ from car exhausts."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

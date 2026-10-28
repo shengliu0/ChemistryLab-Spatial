@@ -40,6 +40,7 @@ import com.bytedance.chemistrylab.core.titration.MicroScale
 import com.bytedance.chemistrylab.core.titration.MicroTargets
 import com.bytedance.chemistrylab.core.titration.Titration
 import com.bytedance.chemistrylab.demos.flame.StrokeText
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.BakeCache
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
@@ -1001,6 +1002,26 @@ object TitrationDemo : SpecDemo() {
 
     /** The first drop (burette reading / 0.05 mL) at which the current indicator turns in the current acid. */
     internal fun turnDrop(): Int = table(acid).indexOfFirst { it >= pe }.let { if (it < 0) MAX_DROPS else it }
+
+    // ---- background card (📖): context for a viewer who has never met a titration
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("磁力搅拌器上的锥形瓶里是 25.00 mL 酸（盐酸或醋酸）和两滴指示剂，上方 50 mL 滴定管装着 0.100 mol/L 氢氧化钠。捏活塞滴一滴，向下拖活塞开大流速。旁边 pH 计读数，黑板实时画 pH 曲线，分子窗口里 H₃O⁺ 遇上 OH⁻ 变成水。捏瓶子换酸或指示剂，捏烧瓶重新装液。真实的强酸强碱会灼伤皮肤和眼睛，要戴护目镜。", "On a stirrer, a flask holds 25.00 mL of acid (hydrochloric or acetic) and two drops of indicator; above it a 50 mL burette holds 0.100 mol/L sodium hydroxide. Pinch the stopcock for one drop, drag it down to run faster. A pH meter and a live pH curve follow it; a molecule window shows H₃O⁺ meeting OH⁻ to make water. Pinch bottles to swap acid or indicator. Real strong acids and bases burn: wear goggles."),
+        ),
+        About.Page(
+            Bi("一滴一滴数出浓度", "Measuring drop by drop"),
+            Bi("一瓶醋里到底有多少酸？工厂和药房很早就需要又快又准的答案。办法是：用浓度已知的碱一点点去中和，刚好中和完时用了多少毫升，就能反推出酸有多少。1824 年前后，法国化学家盖-吕萨克给“滴定管”起了名字，把这种测量做成了精确的分析方法，一直沿用到今天。", "How much acid is in a bottle of vinegar? Factories and pharmacies needed fast, accurate answers. The trick: neutralise the acid bit by bit with a base of known strength, and the volume needed at the exact end tells you how much acid there was. Around 1824 the French chemist Gay-Lussac named the burette and turned this into a precise method of analysis, still in daily use."),
+        ),
+        About.Page(
+            Bi("核心想法：最后一滴的跳变", "Key idea: the last-drop jump"),
+            Bi("酸和碱一对一抵消：H⁺ + OH⁻ → H₂O。只要还剩一点酸，加进来的碱都被吃掉，pH 涨得很慢；酸一用完，多一点碱就过量，pH 一下跳好几个单位，等当点前后各一滴，pH 就从 4 跳到 10。好比往一碗沙里倒水：沙没吸饱时水面纹丝不动，吸饱后再一勺就漫上来。指示剂只是把这一跳变成颜色。", "Acid and base cancel one for one: H⁺ + OH⁻ → H₂O. While any acid is left, each drop of base is eaten up and the pH barely moves; once the acid is gone, a little base is in excess and the pH leaps, here from 4 to 10 between one drop before and one after. Like pouring water onto a bowl of sand: nothing shows until the sand is soaked, then one spoonful floods it. The indicator just turns that leap into colour."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("食品厂测醋和果汁的酸度，药厂检验药片的有效成分，水厂测水的硬度和碱度，至今都离不开滴定，很多已交给自动滴定仪完成。你的血液 pH 稳定在 7.4 左右，靠的正是弱酸缓冲体系——就是醋酸曲线上那段平缓的缓冲区。", "Food plants check the acidity of vinegar and juice, drug makers check how much active ingredient a tablet holds, and water works measure hardness and alkalinity, all by titration, often with automatic titrators now. Your blood stays near pH 7.4 thanks to a weak-acid buffer system: the same flat buffer region you see on the acetic-acid curve."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

@@ -34,6 +34,7 @@ import com.bytedance.chemistrylab.core.rates.Arrhenius
 import com.bytedance.chemistrylab.core.rates.CollisionBox
 import com.bytedance.chemistrylab.core.rates.Thiosulfate
 import com.bytedance.chemistrylab.core.rates.XRun
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -1061,6 +1062,26 @@ object RatesDemo : SpecDemo() {
 
     /** Challenge: a run of flask 1 started and finished since the challenge began, within [GOAL_S]. */
     private fun flask1Beat(): Boolean { val r = runs[0]; return finished[0] > lsFin0[0] && r != null && r.obscured && r.tObscured <= GOAL_S }
+
+    // ---- background card (📖): context for a viewer who has never met reaction rates
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("四只锥形瓶装着硫代硫酸钠溶液，泡在 15、25、35、45 °C 的水浴里，每只后面垫着画黑色 X 的卡片。捏烧瓶倒入盐酸，秒表开始：析出的硫让溶液变得乳白，看不见 X 就停表，结果点到图上。捏水浴旋钮改温度，捏罐子加催化剂。右边玻璃盒放大分子碰撞。真做会放出刺激呼吸道的二氧化硫，要在通风处进行。", "Four flasks of sodium thiosulfate sit in baths at 15, 25, 35 and 45 °C, each before a card with a black X. Pinch a flask to pour in hydrochloric acid and start the stopwatch: sulfur turns the liquid milky, and when the X disappears the clock stops and the time goes on the chart. Pinch a bath's knob to warm it, the jar to add catalyst. The glass cube magnifies the collisions. Real runs give off irritating SO₂: ventilate."),
+        ),
+        About.Page(
+            Bi("热一点，快多少？", "How much faster when warmer?"),
+            Bi("人们早就知道加热能让反应变快，可到底快多少、为什么？1889 年，瑞典化学家阿伦尼乌斯给出了公式：速率随温度按指数增长，关键在于一个能量门槛，叫“活化能”。后来的碰撞理论解释了门槛的来源：分子不但要撞上，还要撞得够猛、方向对，才会发生反应。", "People always knew that heat speeds reactions up, but by how much, and why? In 1889 the Swedish chemist Arrhenius gave the formula: the rate grows exponentially with temperature, governed by an energy threshold called the activation energy. Later, collision theory explained where the threshold comes from: molecules must not only meet but hit hard enough, and the right way round, to react."),
+        ),
+        About.Page(
+            Bi("核心想法：翻过一座山", "Key idea: over the hill"),
+            Bi("溶液里的分子不停乱撞，但绝大多数撞得太轻，弹开了事；只有能量超过活化能的少数猛撞才能反应。好比推车翻山，只有推得够猛的才能翻过山顶。升温 10 °C，分子平均只快一点点，能翻山的那条“尾巴”却翻了一倍：演示里 25 °C 约 40 秒，35 °C 约 20 秒。催化剂则是把山挖低，53 → 40 kJ/mol。", "Molecules in solution collide all the time, but almost every hit is too gentle and they just bounce off; only the rare hard hit with more than the activation energy reacts. Like pushing carts over a hill: only the hardest pushes make it over the top. Warming by 10 °C barely speeds the average molecule, yet doubles that energetic tail: about 40 s at 25 °C, 20 s at 35 °C here. A catalyst lowers the hill, 53 → 40 kJ/mol."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("冰箱让食物坏得慢，是因为降温让细菌和酶的反应都变慢；高压锅把水温提到约 120 °C，炖肉快得多。药品写着“阴凉处保存”，是为了让分解反应慢下来。汽车尾气净化器、化工厂的催化剂、你身体里的酶，做的都是同一件事：把那座山挖低。", "A fridge keeps food fresh longer because cold slows the reactions of bacteria and enzymes; a pressure cooker heats water to about 120 °C, so stew cooks much faster. Medicines say \"store in a cool place\" to slow their breakdown. Car catalytic converters, industrial catalysts and the enzymes in your body all do the same job: lower the hill."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

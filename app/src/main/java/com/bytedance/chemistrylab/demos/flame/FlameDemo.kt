@@ -35,6 +35,7 @@ import com.bytedance.chemistrylab.core.flame.Salts
 import com.bytedance.chemistrylab.core.flame.Sample
 import com.bytedance.chemistrylab.core.optics.Spectrum
 import com.bytedance.chemistrylab.render.OptGeo
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.BakeCache
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
@@ -888,6 +889,26 @@ object FlameDemo : SpecDemo() {
 
     private val inFlame get() = burnerOn && heat > 0.6f
     private fun showing(i: Int) = inFlame && !shownUnknown && shownIdx == i
+
+    // ---- background card (📖): context for a viewer who has never met atomic spectra
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("一盏本生灯、一排七种氯化物盐（钠、钾、锂、钙、锶、钡、铜）和一根铂丝环。捏一盘盐，铂丝蘸上送进火焰，火焰就换了颜色；右边的分光镜把这束光拆成一条条亮线。左上是原子能级图，还可以举起蓝色钴玻璃。捏「?」盘开始游戏：认出未知样品里的元素。真做时是明火，要扎好头发、远离易燃物。", "A Bunsen burner, seven chloride salts (Na, K, Li, Ca, Sr, Ba, Cu) and a platinum loop. Pinch a dish: the loop carries the salt into the flame and the flame changes colour; the spectroscope on the right splits that light into bright lines. Top left: the atom's energy levels; you can also raise a blue cobalt glass. The \"?\" dish starts a game: name the elements in an unknown sample. Real flames: tie hair back."),
+        ),
+        About.Page(
+            Bi("给元素验指纹", "Fingerprinting the elements"),
+            Bi("1859–1860 年，德国海德堡的本生和基尔霍夫发现：每种元素在火焰里只发出几条特定颜色的光，位置永远不变。他们用分光镜给元素“验指纹”，很快在矿泉水里认出两种新元素——铯和铷，名字分别来自拉丁文的“天蓝”和“深红”，就是它们最亮的谱线。基尔霍夫还用同一方法读出太阳里有钠。", "In 1859–1860 in Heidelberg, Bunsen and Kirchhoff found that each element in a flame gives only a few colours of light, always at the same places. With a spectroscope they could fingerprint elements, and soon found two new ones in mineral water: caesium and rubidium, named after the Latin for sky-blue and deep red, the colours of their brightest lines. Kirchhoff used the same idea to show there is sodium in the Sun."),
+        ),
+        About.Page(
+            Bi("核心想法：电子跳楼梯", "Key idea: electrons on stairs"),
+            Bi("火焰的热把原子里的电子“踢”上更高的能级；它掉回来时放出一个光子，光子能量正好等于两级之差，E = hc/λ。每种元素的能级像一架独有的楼梯，台阶高度各不相同，所以放出的光只有那几种颜色。钠的台阶是 2.10 eV，对应 589 nm 黄光。焰色，就是这些谱线在眼里混出来的总色。", "The flame's heat kicks an electron up to a higher energy level; falling back, it emits one photon whose energy is exactly the gap, E = hc/λ. Each element's levels are like its own private staircase with steps of its own heights, so it can only give out those few colours. Sodium's step is 2.10 eV: yellow light at 589 nm. The flame colour is simply what those lines add up to in your eye."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("烟花的红色来自锶、绿色来自钡、蓝色来自铜，就是焰色反应。老式路灯的橙黄光是钠的 589 nm。天文学家用谱线读出遥远恒星由什么组成，氦就是 1868 年先在太阳光谱里被发现、后来才在地球上找到的。化验室的光谱仪也用同一原理，测出水和食品里极微量的金属。", "Firework red comes from strontium, green from barium, blue from copper: flame tests in the sky. Old orange street lamps glow with sodium's 589 nm. Astronomers read what distant stars are made of from their lines; helium was first found in the Sun's spectrum in 1868, years before anyone found it on Earth. Lab spectrometers use the same idea to detect tiny traces of metals in water and food."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

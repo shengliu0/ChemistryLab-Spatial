@@ -40,6 +40,7 @@ import com.bytedance.chemistrylab.core.crystal.Crystals
 import com.bytedance.chemistrylab.core.crystal.Cut
 import com.bytedance.chemistrylab.core.crystal.Model
 import com.bytedance.chemistrylab.core.crystal.Polyhedron
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -976,6 +977,26 @@ object CrystalDemo : SpecDemo() {
     /** Pinch the probe atom unless its shell is already lit (a second pinch would switch it off). */
     private fun lightProbe() { if (!probeOn()) onTap("Probe0") }
     private fun litCn(): Int = if (!coordOn) 0 else crystal.coordination(model.atoms[model.probes[min(probeK, model.probes.size - 1)]].cls)
+
+    // ---- background card (📖): context for a viewer who has never met crystal lattices
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("左边托盘上是真实标本：阶梯状的岩盐立方体（上方有一把劈刀）、一瓶氯化铯、铜块和铜丝、闪光的金刚石、石墨块和铅笔。捏一个标本，它的晶格就“放大 2.6 亿倍”长到展台上，间距和原子大小都按真实数据。捏带光圈的原子，数它有几个邻居；捏劈刀劈开食盐；拖石墨的顶层，看它滑开。", "On the tray on the left are real specimens: a stepped rock-salt cube with a chisel above it, a vial of caesium chloride, a copper block and wire, a sparkling diamond, a graphite lump and a pencil. Pinch one and its lattice grows onto the stand, magnified 260 million times, with true spacings and atom sizes. Pinch a haloed atom to count its neighbours, pinch the chisel to split the salt, drag graphite's top layer to slide it."),
+        ),
+        About.Page(
+            Bi("第一次看清晶体内部", "Seeing inside a crystal"),
+            Bi("晶体为什么有平整的面和固定的角？1912 年劳厄发现，X 射线穿过晶体会衍射出规则的斑点。1913 年，布拉格父子用这些斑点第一次“看”清了食盐内部：钠离子和氯离子交替排成立方格子，里面根本没有成对的“NaCl 分子”。X 射线晶体学由此诞生，后来 DNA 双螺旋也是靠 X 射线衍射照片解出来的。", "Why do crystals have flat faces and fixed angles? In 1912 Laue found that X-rays passing through a crystal scatter into a regular pattern of spots. In 1913 the Braggs, father and son, used such spots to see inside table salt for the first time: sodium and chloride ions alternate in a cubic grid, with no separate NaCl molecules at all. X-ray crystallography was born; the DNA double helix was later solved from X-ray photos too."),
+        ),
+        About.Page(
+            Bi("核心想法：排法决定性质", "Key idea: the packing decides"),
+            Bi("同样的原子，排法不同，性质就天差地别。金刚石和石墨都是纯碳：金刚石里每个碳向四个方向各连一根键，织成一张没有弱面的立体网，所以最硬。石墨是一层层的蜂窝网，层内很牢，层间只靠弱力，就像一叠扑克牌，一推就滑开，于是铅笔能写字。食盐一劈就裂，铜却能弯，也都是排法决定的。", "Same atoms, different packing, very different behaviour. Diamond and graphite are both pure carbon. In diamond every carbon bonds in four directions, weaving a 3-D net with no weak plane: the hardest material. Graphite is a stack of honeycomb sheets, strong within each sheet but only weakly held together, like a deck of cards that slides at a push: that is how a pencil writes. Salt cleaves and copper bends for the same reason."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("手机芯片里的硅，原子排法和金刚石一样，而且要做成几乎没有缺陷的大单晶。从石墨上剥下的单层就是石墨烯，2010 年获诺贝尔物理学奖。药厂用 X 射线晶体学看清蛋白质的结构来设计新药。铜能拉成导线、敲成薄片，是因为金属原子层可以滑动而不断开。", "The silicon in a phone chip has the same arrangement as diamond and is grown as a huge, nearly flawless single crystal. Peel one sheet off graphite and you have graphene, which won the 2010 Nobel Prize in Physics. Drug makers use X-ray crystallography to see the shapes of proteins and design medicines to fit them. Copper can be drawn into wire because its layers of atoms can slide without breaking apart."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

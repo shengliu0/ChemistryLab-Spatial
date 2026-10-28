@@ -27,6 +27,7 @@ import com.bytedance.chemistrylab.core.P3
 import com.bytedance.chemistrylab.core.vsepr.Vsepr
 import com.bytedance.chemistrylab.core.vsepr.VseprData
 import com.bytedance.chemistrylab.core.vsepr.VseprSim
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -671,6 +672,26 @@ object VseprDemo : SpecDemo() {
     private fun meanAngle(): Double = Vsepr.bondAngles(sim.u, sim.lone, sim.n).let { if (it.isEmpty()) 0.0 else it.average() }
     private fun firstLone() = (0 until sim.n).firstOrNull { sim.lone[it] } ?: -1
     private fun firstBond() = (0 until sim.n).firstOrNull { !sim.lone[it] } ?: -1
+
+    // ---- background card (📖): context for a viewer who has never met molecular shapes
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("中间是一个中心原子，周围伸出化学键（末端连着原子）和“孤对电子”气球。在面板上点一个分子（CO₂、CH₄、NH₃、H₂O、SF₆、XeF₄ 等 11 种），或捏「＋键」「＋孤对」加一对电子、捏掉原子或气球减一对，分子会在约 1 秒内自己滑进新形状。弧线标着算出的键角，可与实验值对照。拖中心原子或旋转球转动它。", "A central atom with bonds (each ending in an atom) and lone-pair balloons sticking out. Tap a molecule on the panel (CO₂, CH₄, NH₃, H₂O, SF₆, XeF₄ and more, 11 in all), or pinch \"+ bond\" / \"+ lone pair\" to add an electron pair and pinch an atom or balloon away to remove one: in about a second the molecule slides into its new shape. Arcs show the computed angles, next to measured ones. Drag the centre atom or trackball to turn it."),
+        ),
+        About.Page(
+            Bi("分子长什么样？", "What shape is a molecule?"),
+            Bi("分子太小，看不见，可它的形状决定了它的性质。1940 年，英国的西奇威克和鲍威尔提出：中心原子周围的电子对互相排斥，形状由此而来。1957 年，吉莱斯皮和尼霍姆把它整理成一套简单规则（价层电子对互斥，VSEPR）：不用复杂计算，只数电子对，就能在纸上预言大多数分子的形状。", "Molecules are far too small to see, yet their shape decides how they behave. In 1940 Sidgwick and Powell in Britain proposed that electron pairs around a central atom repel each other, and that this sets the shape. In 1957 Gillespie and Nyholm turned it into a few simple rules (valence-shell electron-pair repulsion, VSEPR): no heavy maths, just count the electron pairs and you can predict most shapes on paper."),
+        ),
+        About.Page(
+            Bi("核心想法：气球互相挤开", "Key idea: balloons push apart"),
+            Bi("中心原子周围每一对电子都带负电，彼此排斥，于是尽量离得远。想象把几个气球的扎口绑在一起：它们会自己撑开——2 个成一直线，3 个成平面三角，4 个成四面体（109.5°），6 个成八面体。孤对电子像更胖的气球，占地更大，把键挤得更近：所以氨是 107°，水只有 104.5°。", "Every electron pair around the central atom is negatively charged, so the pairs push each other as far apart as they can. Tie a few balloons together by their knots and they spread out on their own: 2 in a line, 3 in a flat triangle, 4 in a tetrahedron (109.5°), 6 in an octahedron. Lone pairs are fatter balloons that take more room and squeeze the bonds closer: ammonia 107°, water only 104.5°."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("水分子是弯的，所以一头偏正、一头偏负，能溶解食盐和糖，沸点也比同类分子高得多——没有这个弯，就没有我们熟悉的水。药物分子要像钥匙对上锁那样，形状契合身体里的蛋白质才起作用。今天电脑能用量子化学算得更准，但化学家拿到一个新分子，第一眼往往还是用 VSEPR 估它的形状。", "Water is bent, so one end is slightly positive and the other slightly negative. That is why it dissolves salt and sugar and boils far higher than similar small molecules; without the bend, water would not be the water we know. A drug works when its shape fits a protein in the body like a key in a lock. Computers now calculate shapes more exactly, but chemists still reach for VSEPR first."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(

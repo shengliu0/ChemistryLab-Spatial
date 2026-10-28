@@ -35,6 +35,7 @@ import com.bytedance.chemistrylab.core.electrolysis.HalfReaction
 import com.bytedance.chemistrylab.core.electrolysis.Micro
 import com.bytedance.chemistrylab.core.electrolysis.Voltameter
 import com.bytedance.chemistrylab.render.BuoyMesh
+import com.bytedance.chemistrylab.lab.About
 import com.bytedance.chemistrylab.lab.Bi
 import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
@@ -925,6 +926,26 @@ object ElectrolysisDemo : SpecDemo() {
     private var bottleTaps = 0
     private var uAtStep = 0f
     private var mark = 0
+
+    // ---- background card (📖): context for a viewer who has never met electrolysis
+    override val about = About(listOf(
+        About.Page(
+            Bi("这个实验在做什么？", "What is this experiment?"),
+            Bi("中间是霍夫曼电解水装置：两根带刻度的玻璃管里插着铂电极，接在直流电源上。通电后两极冒泡，气体聚到管顶。两侧玻璃“放大窗”显示电极表面的分子反应。拧电源旋钮调电压，捏试剂瓶加或去掉硫酸钠，开活塞用木条检验气体，捏储液球重新加满。真做时，氢氧混合遇火会爆炸，要远离明火。", "A Hofmann apparatus: two graduated tubes with platinum electrodes on a DC supply. Bubbles rise from both electrodes and gather at the tops. Magnifier windows on each side show the molecules reacting. Turn the knob to set the voltage, pinch the bottle to add or remove sodium sulfate, open a tap to test the gas with a splint, pinch the reservoir to refill. Real hydrogen-oxygen mixtures explode near flames."),
+        ),
+        About.Page(
+            Bi("把水拆开的那一天", "The day water was split"),
+            Bi("1800 年，伏打刚发明电堆不久，英国的尼科尔森和卡莱尔就把两根导线伸进水里，看到冒出两种气体：一边是氢气，一边是氧气，体积约为 2 : 1。这证明水不是古人说的“元素”，而是能被电拆开的化合物。电化学从此起步，几年后戴维用电解第一次分离出了金属钠和钾。", "In 1800, soon after Volta announced his battery, Nicholson and Carlisle in London dipped two wires into water and saw two gases appear: hydrogen at one wire, oxygen at the other, about 2 : 1 by volume. Water was not an element, as had long been thought, but a compound that electricity could take apart. Electrochemistry had begun; within a few years Davy used it to isolate sodium and potassium."),
+        ),
+        About.Page(
+            Bi("核心想法：数电子", "Key idea: count the electrons"),
+            Bi("电流就是一串电子在搬运。阴极上，每生成 1 个 H₂ 要收 2 个电子；阳极上，每放出 1 个 O₂ 要交出 4 个电子。好比收银台：氢泡每个 2 块钱，氧泡每个 4 块，同样一笔钱买到的氢正好是氧的两倍。纯水离子极少，几乎不导电，所以要加硫酸钠帮忙运电荷；电压还要高过分解电压（理论 1.23 V）。", "A current is a stream of electrons doing deliveries. At the cathode each H₂ takes 2 electrons; at the anode each O₂ gives back 4. Think of a till: hydrogen bubbles cost 2 coins each, oxygen bubbles 4, so the same money buys exactly twice as much hydrogen. Pure water has almost no ions and barely conducts, so sodium sulfate is added to carry the charge, and the voltage must exceed the decomposition voltage (1.23 V in theory)."),
+        ),
+        About.Page(
+            Bi("今天在哪里？", "Where is it today?"),
+            Bi("用风电、光伏的电来电解水，得到的就是“绿氢”，可以用来炼钢、造化肥、开重卡，是减碳的一条重要路线，世界各地都在建大型电解槽。反过来，让氢和氧在燃料电池里重新变成水，就能发电。工业上的铝、氯气和烧碱，也都是靠电解生产的。", "Split water with electricity from wind or solar and you get \"green hydrogen\", which can make steel and fertiliser or power heavy trucks without carbon emissions; large electrolysers are being built around the world. Run it backwards in a fuel cell, letting hydrogen and oxygen recombine into water, and you get electricity. Aluminium, chlorine and caustic soda are all made industrially by electrolysis too."),
+        ),
+    ))
 
     override val lesson: Lesson by lazy {
         Lesson(
