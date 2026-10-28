@@ -49,6 +49,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.spec.Blend
 import com.bytedance.chemistrylab.lab.spec.LabelSpec
@@ -179,6 +180,7 @@ object TitrationDemo : SpecDemo() {
     private var fShown = 0.0                            // displayed base fraction of the bulk (eased)
     private var pHm = 7.0                               // pH meter reading (first-order response)
     private var holdT = 0f
+    private var sndTurned = false                       // last frame: the bulk past the indicator's endpoint (sound)
     private var lastFlash = -1f
     private var splashT = 9f
     private var stirA = 0f
@@ -587,6 +589,7 @@ object TitrationDemo : SpecDemo() {
         holdT = 0f; lastFlash = -1f; splashT = 9f; simT = 0.0; dragD = 0f
         microNeedsReset = true; microFor = -1
         curveFor = -1
+        sndTurned = pHAt(nMixed) >= pe
     }
 
     // read-only views for the headless flow test
@@ -641,6 +644,8 @@ object TitrationDemo : SpecDemo() {
 
     private fun landDrop() {
         nLanded++
+        // sound: a drop of NaOH plinks into the flask (quieter once the drops merge into a stream)
+        Sfx.play(Sfx.TICK, if (flowNow() >= STREAM_AT) 0.08f else 0.22f, 1.7f, BX / 0.9f)
         val last = parcels.lastOrNull()
         if (last != null && (last.age < 0.10f || parcels.size >= MAX_PARCELS)) { last.n++; return }
         val vTot = tit.vaMl + nLanded * DROP
@@ -666,6 +671,8 @@ object TitrationDemo : SpecDemo() {
         pHm = if (snap) pH else pHm + (pH - pHm) * (1 - exp(-sdt / 0.45))
         // the 30 s rule: the colour must hold with the stopcock shut and nothing in flight
         val reached = pH >= pE
+        if (reached && !sndTurned) Sfx.play(Sfx.CHIME, 0.6f, 1.0f, BX / 0.9f)    // sound: the endpoint - one drop turns the whole flask
+        sndTurned = reached
         val idle = flow == 0f && pending == 0 && dOn.none { it } && parcels.isEmpty()
         holdT = if (reached && idle) holdT + sdt else 0f
         stirA += sdt * OMEGA * 2.2f

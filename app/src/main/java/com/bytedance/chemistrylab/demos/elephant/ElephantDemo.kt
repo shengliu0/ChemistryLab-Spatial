@@ -35,6 +35,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.tr
 import com.bytedance.chemistrylab.lab.spec.Blend
@@ -57,6 +58,7 @@ import java.io.File
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -157,6 +159,9 @@ object ElephantDemo : SpecDemo() {
     private lateinit var bottles: Array<Node>
     private val stX = FloatArray(STEAM_N); private val stY = FloatArray(STEAM_N); private val stZ = FloatArray(STEAM_N)
     private val stVx = FloatArray(STEAM_N); private val stVz = FloatArray(STEAM_N); private val stAge = FloatArray(STEAM_N) { -1f }
+    private val sndFizzT = floatArrayOf(9f, 9f)                  // s since each cylinder's last fizz (sound)
+    private val sndOver = BooleanArray(2)                        // last frame: foam spilling over the mouth (sound)
+    private var sndInO2 = false                                  // last frame: splint tip in O2 (sound)
     private var steamAccA = 0f; private var steamAccB = 0f
     private var curveTurn = 0
     private val curveDirty = BooleanArray(4)
@@ -536,6 +541,7 @@ object ElephantDemo : SpecDemo() {
     override fun update(dt: Float) {
         simulate(dt * SPEEDS[speedIdx])
         updateSplint(dt)
+        eventSounds(dt)
         val a = rA
         micro.update(dt, cat(), a != null, (a?.let { (it.n / it.n0).toFloat() } ?: 1f), a?.rate() ?: 0.0, (a?.enzymeActive ?: 1.0).toFloat())
         // selected bottle ring
@@ -598,6 +604,23 @@ object ElephantDemo : SpecDemo() {
         setColumn(colA, TXA, (a?.tC ?: startC.toDouble()).toFloat())
         setColumn(colB, TXB, (b?.tC ?: startC.toDouble()).toFloat())
         steamStep(sdt, a, b)
+    }
+
+    /** Event sounds: O₂ fizzing ∝ gas rate (re-triggered ≤ ~1/s), the eruption over the rim. */
+    private fun eventSounds(dt: Float) {
+        for (k in 0..1) {
+            val lps = if (k == 0) gasLpsA else gasLpsB
+            val fx = if (k == 0) fxA else fxB
+            val x = (if (k == 0) XA else XB) / 0.9f
+            sndFizzT[k] += dt
+            // sound: O₂ bubbling out of the peroxide - a fizz every ~1 s while gas evolves, louder with the rate
+            if (lps > 0.005f && sndFizzT[k] >= 0.9f) {
+                Sfx.play(Sfx.FIZZ, (0.10f + 0.12f * ln(1f + lps * 10f)).coerceAtMost(0.5f), 1f, x); sndFizzT[k] = 0f
+            }
+            // sound: the foam erupts over the rim of the cylinder
+            if (fx.overflowing && !sndOver[k]) Sfx.play(Sfx.WHOOSH, 0.6f, 0.7f, x)
+            sndOver[k] = fx.overflowing
+        }
     }
 
     private fun done(r: Reactor) = r.t > 3.0 && r.rate() < 1e-5
@@ -746,6 +769,8 @@ object ElephantDemo : SpecDemo() {
         // the ember relights in O2, keeps burning a little after, then glows again
         val tip = tipOf(spPos, spAng)
         val inO2 = o2At(tip)
+        if (inO2 && !sndInO2 && flame < 0.5f) Sfx.play(Sfx.WHOOSH, 0.45f, 1.3f, tip.x / 0.9f)   // sound: the glowing splint bursts back into flame (O₂)
+        sndInO2 = inO2
         if (inO2) { flame = minOf(1f, flame + dt * 5f); litFor = 3f; relitEver = true; lastPokeOk = true }
         else if (litFor > 0f) { litFor -= dt; flame = maxOf(0.45f, flame - dt) }
         else flame = maxOf(0f, flame - dt * 1.5f)

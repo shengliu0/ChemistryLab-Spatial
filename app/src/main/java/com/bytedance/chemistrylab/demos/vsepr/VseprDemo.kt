@@ -35,6 +35,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.tr
 import com.bytedance.chemistrylab.lab.spec.Blend
@@ -152,6 +153,7 @@ object VseprDemo : SpecDemo() {
     private var ghostT = 0f
     private var ghostLone = false
     private var frame = 0
+    private var sndSettled = true                                             // last frame's sim.settled, for the settle sound
     private var textEn = false
     private var poseDirty = true
     private var padT = 0f
@@ -392,6 +394,7 @@ object VseprDemo : SpecDemo() {
         val wasLone = sim.lone[k]; val lig = ligand[k]
         val gx = disp[3 * k]; val gy = disp[3 * k + 1]; val gz = disp[3 * k + 2]
         if (!sim.remove(k)) return false
+        Sfx.play(Sfx.POP, 0.25f, 0.6f)                                          // sound: the domain pulled off the centre (low pop)
         for (i in k until Vsepr.MAX_DOMAINS - 1) { ligand[i] = ligand[i + 1]; grow[i] = grow[i + 1]; for (a in 0 until 3) disp[3 * i + a] = disp[3 * (i + 1) + a] }
         // the removed domain shrinks away where it was
         ghostLone = wasLone; ghostT = 1f
@@ -496,7 +499,15 @@ object VseprDemo : SpecDemo() {
         val growing = grow.any { it < 1f }
         val rescaling = abs(molScale - molScaleTarget) > 1e-4f || abs(molY - molYTarget) > 1e-4f
         if (rescaling) { val k = min(1f, dt * 5f); molScale += (molScaleTarget - molScale) * k; molY += (molYTarget - molY) * k }
-        for (i in 0 until Vsepr.MAX_DOMAINS) grow[i] = min(1f, grow[i] + dt * sp / GROW_S)
+        for (i in 0 until Vsepr.MAX_DOMAINS) {
+            val g0 = grow[i]
+            grow[i] = min(1f, grow[i] + dt * sp / GROW_S)
+            // sound: a bond (bright) or lone pair (lower, softer) snaps fully into place on the central atom
+            if (g0 < 1f && grow[i] >= 1f && i < n) { if (sim.lone[i]) Sfx.play(Sfx.POP, 0.3f, 0.75f) else Sfx.play(Sfx.POP, 0.4f, 1.15f) }
+        }
+        // sound: the repulsion flow comes to rest - the electron domains lock into the VSEPR geometry
+        if (sim.settled && !sndSettled) Sfx.play(Sfx.CLACK, 0.3f, 1.3f)
+        sndSettled = sim.settled
         val needPose = moving || aligning || growing || rescaling || autoSpin || dragging || poseDirty || ghostT > 0f || dt == 0f
         if (needPose) {
             poseDirty = false

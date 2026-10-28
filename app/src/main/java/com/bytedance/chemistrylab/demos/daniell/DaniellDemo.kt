@@ -41,6 +41,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.spec.Blend
 import com.bytedance.chemistrylab.lab.spec.LabelSpec
@@ -139,6 +140,8 @@ object DaniellDemo : SpecDemo() {
     private var textEn = false
     private var seed = 1836L
     private var lift = 0f
+    private var sndFlow = false                                 // last frame: current flowing in the closed loop (sound)
+    private val sndGone = BooleanArray(2)                      // last frame: strip fully dissolved (sound)
     private var blade = 0f
     private var vNeedle = 0f; private var vNeedleV = 0f
     private var aNeedle = 0f; private var aNeedleV = 0f
@@ -322,7 +325,7 @@ object DaniellDemo : SpecDemo() {
         // a fresh cell on every (re)build: defaults, pools at rest, every "already applied" cache cleared
         cell.reset(); cSet[0] = 1.0; cSet[1] = 1.0
         speedIdx = 2; clock = 0f; frame = 0; textEn = Lang.en; seed = 1836L
-        lift = 0f; blade = 0f; vNeedle = 0f; vNeedleV = 0f; aNeedle = 0f; aNeedleV = 0f; fanW = 0f; fanA = 0f; beadPhase = 0.0
+        lift = 0f; blade = 0f; sndFlow = true; vNeedle = 0f; vNeedleV = 0f; aNeedle = 0f; aNeedleV = 0f; fanW = 0f; fanA = 0f; beadPhase = 0.0
         switchTaps = 0; bridgeTaps = 0
         lastTap = ""; liqKey.fill(-1); stripKey.fill(-1); clipPol.fill(99); beadsLit = -1
         for (i in 0 until N_K) kS[i] = (1f + EXT) * i / N_K
@@ -578,9 +581,17 @@ object DaniellDemo : SpecDemo() {
         val flow = if (iCell > 1e-5 && cell.switchClosed) (iCell / I_REF).coerceIn(0.35, 2.6).toFloat() else 0f
         // the bridge and the blade move in real time
         val lt = if (cell.bridgeIn) 0f else 1f
+        val lift0 = lift; val blade0 = blade
         lift = if (lift < lt) minOf(lt, lift + dt / 0.6f) else maxOf(lt, lift - dt / 0.6f)
         val bt = if (cell.switchClosed) 0f else 1f
         blade = if (blade < bt) minOf(bt, blade + dt / 0.25f) else maxOf(bt, blade - dt / 0.25f)
+        if (lift0 > 0f && lift == 0f) Sfx.play(Sfx.GLASS, 0.35f, 0.9f)                       // sound: the salt-bridge tube settles into both beakers
+        if (blade0 > 0f && blade == 0f) Sfx.play(Sfx.CLACK, 0.5f, 1.3f, SW_X / 0.9f)          // sound: the knife switch blade seats in its jaws
+        if (blade0 < 1f && blade == 1f) Sfx.play(Sfx.TICK, 0.3f, 0.9f, SW_X / 0.9f)           // sound: the blade lifts out of the jaws
+        // sound: the circuit is complete (wire AND bridge) and a current starts to flow - a small spark at the contact
+        val flowing = flow > 0f
+        if (flowing && !sndFlow) Sfx.play(Sfx.ZAP, 0.35f, 1.2f, SW_X / 0.9f)
+        sndFlow = flowing
 
         placeBeakers()
         placeBridge(dt, flow)
@@ -605,6 +616,8 @@ object DaniellDemo : SpecDemo() {
                 for (n in nodules[k]) n.setMat(depositMat(m))
             }
             val gone = h.mass <= 0.0
+            if (gone && !sndGone[k]) Sfx.play(Sfx.THUD, 0.4f, 0.8f, SX[k] / 0.9f)    // sound: the anode strip has dissolved away - the cell is spent
+            sndGone[k] = gone
             val ww = STRIP_W * (1f - 0.30f * f); val dw = STRIP_D * maxOf(0.15f, 1f - 0.80f * f)
             stripWet[k].visible = !gone
             stripWet[k].pos = P3(SX[k], (STRIP_BOT + LIQ) / 2, SZ); stripWet[k].scale = P3(ww, LIQ - STRIP_BOT, dw)

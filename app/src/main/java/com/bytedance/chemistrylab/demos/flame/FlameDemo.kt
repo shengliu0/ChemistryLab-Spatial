@@ -45,6 +45,7 @@ import com.bytedance.chemistrylab.lab.Lang
 import com.bytedance.chemistrylab.lab.LabHost
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.tr
 import com.bytedance.chemistrylab.lab.spec.Blend
@@ -157,6 +158,8 @@ object FlameDemo : SpecDemo() {
     private var revealed = false
     private var sawGlassDown = false
     private var mysteryBase = 0
+    private var sndBurner = true                                              // last frame's state, for event sounds
+    private var sndShown: Sample? = null
 
     private val MYSTERY_POOL = listOf(listOf(0, 1), listOf(0), listOf(1), listOf(2), listOf(3), listOf(4), listOf(5), listOf(6),
         listOf(0, 2), listOf(1, 2), listOf(4, 5))
@@ -567,6 +570,11 @@ object FlameDemo : SpecDemo() {
         val inFlame = burnerOn && dist(tip, TIP_FLAME) < 0.012f
         val fs = if (inFlame) carrying else null
         if (fs != null && fs !== shown && heat < 0.02f) { shown = fs; shownUnknown = carryingUnknown; shownIdx = carryingIdx }
+        // sound: gas ignites (soft whoosh of the flame catching) / gas off (a low puff)
+        if (burnerOn != sndBurner) { sndBurner = burnerOn; if (burnerOn) Sfx.play(Sfx.WHOOSH, 0.5f, 0.8f, FX / 0.9f) else Sfx.play(Sfx.THUD, 0.2f, 1.4f, FX / 0.9f) }
+        // sound: the salt-laden loop enters the flame - the salt crackles/fizzes as it vaporises
+        if (fs != null && fs !== sndShown) { sndShown = fs; Sfx.play(Sfx.FIZZ, 0.35f, 1.3f, FX / 0.9f) }
+        if (fs == null && heat < 0.02f) sndShown = null
         val target = if (fs != null && fs === shown) 1f else 0f
         heat = if (dt == 0f) heat else approach(heat, target, dt * if (target > heat) 2.8f else 5f)
         // cobalt glass: slides between the bench and the line of sight
@@ -592,7 +600,10 @@ object FlameDemo : SpecDemo() {
         while (budget > 0f && path.isNotEmpty()) {
             if (pause > 0f) { pause -= budget / LOOP_V; if (pause > 0f) { budget = 0f; break }; budget = -pause * LOOP_V; pause = 0f }
             val (p, wait) = path.first(); val d = dist(tip, p)
-            if (d <= budget) { tip = p; path.removeFirst(); budget -= d; pause = wait }
+            if (d <= budget) {
+                tip = p; path.removeFirst(); budget -= d; pause = wait
+                if (wait > 0f) Sfx.play(Sfx.TICK, 0.25f, 1.2f, tip.x / 0.9f)             // sound: the wire loop touches the salt in the dish
+            }
             else { val k = budget / d; tip = P3(tip.x + (p.x - tip.x) * k, tip.y + (p.y - tip.y) * k, tip.z + (p.z - tip.z) * k); budget = 0f }
         }
         loop.pos = tip
@@ -1033,8 +1044,11 @@ object FlameDemo : SpecDemo() {
         val m = mystery ?: return
         if (solved) return                                                   // the round is over: the note keeps saying so
         lastAnswerIdx = i
-        if (i in m) { found += i; lastAnswer = 1; if (found.containsAll(m)) solved = true }
-        else { wrong++; lastAnswer = -1; cardFlash[i] = 0.8f }
+        if (i in m) {
+            found += i; lastAnswer = 1
+            if (found.containsAll(m)) { solved = true; Sfx.play(Sfx.CHIME, 0.6f, 1.0f) }   // sound: every element in the unknown identified
+            else Sfx.play(Sfx.POP, 0.4f, 1.1f)                                            // sound: one element correctly matched to its line
+        } else { wrong++; lastAnswer = -1; cardFlash[i] = 0.8f; Sfx.play(Sfx.DENY, 0.35f) }  // sound: that element's line is not in the spectrum
     }
 
     fun reveal() { val m = mystery ?: return; found.addAll(m); solved = true; revealed = true }

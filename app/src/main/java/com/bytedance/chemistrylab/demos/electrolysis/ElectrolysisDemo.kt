@@ -43,6 +43,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.tr
 import com.bytedance.chemistrylab.lab.spec.Blend
@@ -137,6 +138,8 @@ object ElectrolysisDemo : SpecDemo() {
     private var seed = 1L
     private var frame = 0
     private var textEn = false
+    private var sndBubbles = 0                               // bubbles released since the last fizz (sound)
+    private var sndFizzT = 9f                                // s since the last fizz
     private var cockResult = 0                               // 0 started, 1 no gas, 2 busy
 
     private class GasTest { var t = -1f; var vent0 = 0.0; val active get() = t >= 0f }
@@ -594,13 +597,19 @@ object ElectrolysisDemo : SpecDemo() {
         val mlPerS = if (cell.full) 0.0 else i * cell.kH * lapse
         val rateH = if (mlPerS < 1e-4) 0f else minOf(32f, (20.0 * sqrt(mlPerS)).toFloat())
         val rates = floatArrayOf(rateH, rateH / 2f)
+        // sound: gas evolving at the foils - a fizz re-triggered ~1/s while bubbles are released, louder with more current
+        sndFizzT += dt
+        if (sndBubbles > 0 && sndFizzT >= 0.95f) {
+            Sfx.play(Sfx.FIZZ, 0.08f + 0.30f * (rateH / 32f).coerceIn(0f, 1f), 1f, (TUBE_X[0] + TUBE_X[1]) / 2f / 0.9f)
+            sndFizzT = 0f; sndBubbles = 0
+        }
         for (k in 0..1) {
             bAcc[k] += rates[k] * dt
             val lo = if (k == 0) 0 else NB_H; val hi = if (k == 0) NB_H else NB_H + NB_O
             while (bAcc[k] >= 1f) {
                 bAcc[k] -= 1f
                 val b = (lo until hi).firstOrNull { !bOn[it] } ?: break
-                bOn[b] = true
+                bOn[b] = true; sndBubbles++
                 bX[b] = TUBE_X[k] + (rnd() - 0.5f) * (FOIL_W - 0.004f)
                 bY[b] = ELEC_Y + (rnd() - 0.5f) * (FOIL_H - 0.01f)
                 bZ[b] = (if (rnd() < 0.5f) -1f else 1f) * (0.004f + 0.007f * rnd())
@@ -763,7 +772,14 @@ object ElectrolysisDemo : SpecDemo() {
             g.t += dt
             val t = g.t
             // venting: the tube empties over T_VENT s (the reservoir head pushes the water back up)
-            if (t0 < T_OPEN && t >= T_OPEN) g.vent0 = if (k == 0) cell.gasH else cell.gasO
+            if (t0 < T_OPEN && t >= T_OPEN) {
+                g.vent0 = if (k == 0) cell.gasH else cell.gasO
+                Sfx.play(Sfx.FIZZ, 0.15f, 1.7f, x / 0.9f)                           // sound: the stopcock opens, gas hisses out of the nozzle
+            }
+            if (t0 < T_REACT && t >= T_REACT) {
+                if (k == 0) Sfx.play(Sfx.POP, 0.8f, 1.45f, x / 0.9f)               // sound: hydrogen meets the burning splint - the squeaky pop
+                else Sfx.play(Sfx.WHOOSH, 0.45f, 1.1f, x / 0.9f)                   // sound: the glowing splint bursts back into flame in oxygen
+            }
             if (t >= T_OPEN && t0 < T_OPEN + T_VENT) {
                 val a = maxOf(t0, T_OPEN); val b = minOf(t, T_OPEN + T_VENT)
                 if (b > a) cell.vent(k == 0, g.vent0 * (b - a) / T_VENT)

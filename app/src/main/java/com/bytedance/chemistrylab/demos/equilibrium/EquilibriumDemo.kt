@@ -48,6 +48,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.spec.Blend
 import com.bytedance.chemistrylab.lab.spec.LabelSpec
@@ -162,6 +163,8 @@ object EquilibriumDemo : SpecDemo() {
     private var chartDirty = true
     private var chartFor = -1
     private var frame = 0
+    private var sndAssoc = 0L; private var sndDissoc = 0L        // micro event counts already sounded
+    private var sndSyrMoving = false
     private var textEn = false
     private var lastTap = ""
     private var dragV0 = 0.0
@@ -461,13 +464,19 @@ object EquilibriumDemo : SpecDemo() {
         val step = 260.0 * dt
         syringeMl = if (abs(syringeTarget - syringeMl) <= step) syringeTarget.toDouble() else syringeMl + step * Math.signum(syringeTarget - syringeMl)
         b.volume = V_FLASK + syringeMl * 1e-6
+        val syrMoving = abs(b.volume - prevV) > 1e-12
+        if (syrMoving && !sndSyrMoving) Sfx.play(Sfx.WHOOSH, 0.2f, if (b.volume < prevV) 0.7f else 1.0f, SEAL_X0 / 0.9f)   // sound: the plunger starts to squeeze / release the gas
+        sndSyrMoving = syrMoving
         if (abs(b.volume - prevV) > 1e-12) {
             if (!(evKind == 1 && simT - evLast < 1.5)) { evKind = 1; evFlask = 1; evStart = simT; evV0 = prevV; evC0 = prevC }
             evV1 = b.volume; evLast = simT
         }
 
         // swap animation (real time)
-        if (swapT >= 0f) { swapT += dt / 1.4f; if (swapT >= 1f) swapT = -1f }
+        if (swapT >= 0f) {
+            swapT += dt / 1.4f
+            if (swapT >= 1f) { swapT = -1f; Sfx.play(Sfx.GLASS, 0.35f, 1.0f, SX[swapS2] / 0.9f) }   // sound: the flask is set down in its new bath
+        }
 
         // chemistry + heat exchange in every flask
         for (f in 0 until 3) vessels[f].step(sdt, bathT[stationOf[f]] + Dimerization.KELVIN, KF, TAU_TH)
@@ -491,6 +500,11 @@ object EquilibriumDemo : SpecDemo() {
         micro.setTemperature(v.tGas)
         micro.setTop(lidTop(selected))
         if (showMicro) micro.step(sdt, Dimerization.kp(v.tGas) * v.p0() / N_UNITS, kr(v))
+        // sound: each Gillespie event in the molecule window - 2 NO₂ → N₂O₄ a bright tick, N₂O₄ → 2 NO₂ a lower one
+        if (micro.assocEvents < sndAssoc || micro.dissocEvents < sndDissoc) { sndAssoc = micro.assocEvents; sndDissoc = micro.dissocEvents }
+        if (showMicro && micro.assocEvents > sndAssoc) Sfx.play(Sfx.TICK, 0.14f, 1.35f, winX / 0.9f)
+        if (showMicro && micro.dissocEvents > sndDissoc) Sfx.play(Sfx.POP, 0.12f, 0.8f, winX / 0.9f)
+        sndAssoc = micro.assocEvents; sndDissoc = micro.dissocEvents
 
         place(dt)
         if (frame++ % 6 == 0 || dt == 0f || Lang.en != textEn) { textEn = Lang.en; updateReadout(); updateLabels() }

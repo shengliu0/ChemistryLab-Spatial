@@ -42,6 +42,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.spec.Blend
 import com.bytedance.chemistrylab.lab.spec.LabelSpec
@@ -564,7 +565,11 @@ object RatesDemo : SpecDemo() {
             if (phase[s] == POURING) {
                 val before = pourT[s]
                 pourT[s] += dt
-                if (before < POUR_MIX && pourT[s] >= POUR_MIX) runs[s] = XRun(conc[s].toDouble())
+                if (before < POUR_IN && pourT[s] >= POUR_IN) Sfx.play(Sfx.FIZZ, 0.15f, 0.7f, SX[s] / 0.9f)   // sound: the acid pours into the thiosulfate
+                if (before < POUR_MIX && pourT[s] >= POUR_MIX) {
+                    runs[s] = XRun(conc[s].toDouble())
+                    Sfx.play(Sfx.CLACK, 0.3f, 1.7f, SX[s] / 0.9f)                                           // sound: the stopwatch is started
+                }
                 if (pourT[s] >= POUR_END) phase[s] = RUNNING
             }
             val r = runs[s]
@@ -589,6 +594,7 @@ object RatesDemo : SpecDemo() {
         results += Result(s, modeIdx, r.tMeanK - Arrhenius.KELVIN, r.c0, r.tObscured)
         while (results.size > points.size) results.removeAt(0)
         lastDone = s; lastDoneAge = 0f; doneFlash[s] = 0f
+        Sfx.play(Sfx.CHIME, 0.55f, 1.0f, SX[s] / 0.9f)                                                     // sound: the X has vanished under the sulfur - stopwatch stopped
         chartDirty = true
         finished[s]++
     }
@@ -824,6 +830,7 @@ object RatesDemo : SpecDemo() {
         while (from < newest) {
             val slot = (from % micro.evCap).toInt()
             val kind = micro.evKind[slot]
+            if (kind == CollisionBox.F_REACT) Sfx.play(Sfx.TICK, 0.18f, 1.5f, MB.x / 0.9f)    // sound: a collision above Ea reacts (near misses stay silent)
             val free = ballAge.indices.filter { ballAge[it] >= ballDur[it] }
             if (free.isNotEmpty() && (kind != CollisionBox.F_NEAR || free.size >= 3)) {
                 val b = free.first()

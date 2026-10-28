@@ -48,6 +48,7 @@ import com.bytedance.chemistrylab.lab.Lesson
 import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
+import com.bytedance.chemistrylab.lab.Sfx
 import com.bytedance.chemistrylab.lab.TapTarget
 import com.bytedance.chemistrylab.lab.spec.Blend
 import com.bytedance.chemistrylab.lab.spec.LabelSpec
@@ -731,8 +732,13 @@ object CrystalDemo : SpecDemo() {
         val sepMax = 0.15f / max(0.2f, sCur)
         when (cleaveState) {
             1 -> {
+                val t0 = cleaveT
                 cleaveT += dt
                 val t = cleaveT
+                val pan = latt.pos.x / 0.9f
+                if (t0 == 0f && dt > 0f) Sfx.play(Sfx.CLACK, 0.6f, 0.8f, pan)                      // sound: the chisel strikes the crystal
+                if (t0 < SLIP_T && t >= SLIP_T) Sfx.play(Sfx.TICK, 0.3f, 0.8f, pan)                 // sound: the layers slip half a spacing
+                if (t0 < SEP_T && t >= SEP_T) Sfx.play(Sfx.GLASS, 0.55f, 1.25f, pan)                // sound: like ions repel - the crystal cracks apart on {100}
                 val al = smooth(t / 0.70f); userRot = Q.axisAngle(0f, 1f, 0f, alignYaw * (al - alignApplied)) * userRot; alignApplied = al
                 slip = a / 2 * smooth((t - SLIP_T) / 0.45f)
                 sep = sepMax * smooth((t - SEP_T) / 0.85f)
@@ -743,7 +749,7 @@ object CrystalDemo : SpecDemo() {
                 cleaveT += dt
                 val w = 1f - smooth(cleaveT / 0.8f)
                 slip = a / 2 * w; sep = sepMax * w
-                if (cleaveT >= 0.8f) { cleaveState = 0; slip = 0f; sep = 0f; bondsX.visible = !spaceFill && bondsX.mesh != null }
+                if (cleaveT >= 0.8f) { Sfx.play(Sfx.CLACK, 0.3f, 1.2f, latt.pos.x / 0.9f) /* sound: the two halves meet again */; cleaveState = 0; slip = 0f; sep = 0f; bondsX.visible = !spaceFill && bondsX.mesh != null }
             }
         }
         // like-charge repulsion glows between the facing ions (only while the halves part)
@@ -1123,6 +1129,7 @@ object CrystalDemo : SpecDemo() {
                 slideVX = if (useX) sgn * a / dur else 0f; slideVZ = if (useX) 0f else sgn * a / dur
                 if (abs(slideX + slideVX * dur) > 2.5f * a || abs(slideZ + slideVZ * dur) > 2.5f * a) { slideVX = -slideVX; slideVZ = -slideVZ }
                 slideAnimLeft = dur
+                Sfx.play(Sfx.WHOOSH, 0.2f, 1.7f, latt.pos.x / 0.9f)                            // sound: graphite's top layer slides (weak interlayer forces)
                 tr("顶层滑过 %.0f pm（一个晶格常数）：层间力很弱；铅笔在纸上留下一道", "Top layer slides %.0f pm (one lattice constant): weak interlayer forces; the pencil leaves a line").format(model.crystal.a)
             }
             name == "Trackball" -> { userRot = viewOf(crystalIdx); fitTarget(); tr("视角摆正", "View reset") }
