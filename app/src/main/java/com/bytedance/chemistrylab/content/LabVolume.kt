@@ -98,6 +98,7 @@ fun LabVolume(firstDemo: String) {
         }
     }
     remember(context) { Narrator.init(context); 0 }
+    remember(context) { com.bytedance.chemistrylab.lab.Sfx.init(context); 0 }
 
     val density = LocalDensity.current
     val lengths = LocalPhysicalLengthConverter.current
