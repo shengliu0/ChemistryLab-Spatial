@@ -749,9 +749,12 @@ object VseprDemo : SpecDemo() {
 
     override val tapTargets: List<TapTarget> get() {
         val out = arrayListOf(
-            TapTarget("PadBond", "＋键 → 加一根键", "+ bond → add"),
-            TapTarget("PadLone", "＋孤对 → 加孤对电子", "+ lone pair → add"),
-            TapTarget("Center", "中心原子 → 摆正视角", "Centre atom → reset"),
+            TapTarget("PadBond", "＋键 → 加一根键", "+ bond → add", enabled = { sim.n < Vsepr.MAX_DOMAINS },
+                why = Bi("已经有 6 对电子（八面体）—— 先捏掉一根键或一对孤对", "Already 6 electron pairs (octahedral) — pinch one away first")),
+            TapTarget("PadLone", "＋孤对 → 加孤对电子", "+ lone pair → add", enabled = { sim.n < Vsepr.MAX_DOMAINS },
+                why = Bi("已经有 6 对电子（八面体）—— 先捏掉一根键或一对孤对", "Already 6 electron pairs (octahedral) — pinch one away first")),
+            TapTarget("Center", "中心原子 → 摆正视角", "Centre atom → reset", enabled = { autoSpin || !atHomeView() },
+                why = Bi("视角已经是正的 —— 捏住中心原子拖动可以旋转", "The view is already square — pinch and drag the centre atom to turn it")),
             TapTarget("Trackball", "旋转球 → 自动旋转", "Trackball → auto-spin") { autoSpin },
         )
         var lp = 0; var bd = 0
@@ -761,6 +764,9 @@ object VseprDemo : SpecDemo() {
         }
         return out
     }
+
+    /** The user's rotation is (numerically) the start pose — "reset view" would change nothing. */
+    private fun atHomeView(): Boolean { val d = userRot.x * V0.x + userRot.y * V0.y + userRot.z * V0.z + userRot.w * V0.w; return kotlin.math.abs(d) > 0.99999f }
 
     override fun isTarget(name: String) = name == "PadBond" || name == "PadLone" || name == "Center" || name == "Trackball" ||
         name.startsWith("VAtom") || name.startsWith("VLobe")
