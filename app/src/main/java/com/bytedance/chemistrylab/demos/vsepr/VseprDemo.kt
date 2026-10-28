@@ -27,7 +27,11 @@ import com.bytedance.chemistrylab.core.P3
 import com.bytedance.chemistrylab.core.vsepr.Vsepr
 import com.bytedance.chemistrylab.core.vsepr.VseprData
 import com.bytedance.chemistrylab.core.vsepr.VseprSim
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -654,6 +658,70 @@ object VseprDemo : SpecDemo() {
             "The two LPs sit trans (180°): the strongest repulsion, LP–LP, kept farthest apart")
         else -> tr("孤对先抢彼此离得最远的位置，剩下的位置留给键",
             "Lone pairs take the sites farthest from each other; bonds get what is left")
+    }
+
+    // ---------------------------------------------------------------- guided track (导学)
+    // KEY INSIGHT: electron pairs push each other as far apart as possible, and lone pairs — invisible in the
+    // "shape" — push hardest: CH4, NH3 and H2O all have 4 pairs (a tetrahedron), yet the bond angle shrinks
+    // 109.5° → 106.7° → 104.6° (model; measured 109.5 / 106.7 / 104.5) as bonds turn into lone pairs.
+
+    private const val P_CH4 = 2
+    private const val P_H2O = 4
+    private fun showing(k: Int) = presetIdx == k && !modified && sim.settled
+    private fun meanAngle(): Double = Vsepr.bondAngles(sim.u, sim.lone, sim.n).let { if (it.isEmpty()) 0.0 else it.average() }
+    private fun firstLone() = (0 until sim.n).firstOrNull { sim.lone[it] } ?: -1
+    private fun firstBond() = (0 until sim.n).firstOrNull { !sim.lone[it] } ?: -1
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("在面板上点「CH₄」：看甲烷的 4 根键自己排开。", "Tap “CH₄” on the panel: watch methane's 4 bonds spread themselves out."),
+                    done = { showing(P_CH4) },
+                    autoplay = { choosePreset(P_CH4) },
+                    insight = Bi("4 对电子互相排斥、尽量远离 → 正四面体，键角 109.5°，而不是平面上的 90°。", "4 electron pairs push apart as far as they can → a tetrahedron, 109.5°, not the flat 90°."),
+                ),
+                LessonStep(
+                    say = Bi("水 H₂O：氧上有 2 根键 + 2 对孤对电子。水分子是直的还是弯的？", "Water H₂O: oxygen has 2 bonds + 2 lone pairs. Is the molecule straight or bent?"),
+                    options = listOf(
+                        Bi("直的 180°", "Straight, 180°"),
+                        Bi("弯的", "Bent"),
+                    ),
+                    answer = 1,
+                ),
+                LessonStep(
+                    say = Bi("在面板上点「H₂O」：看水分子自己组装出来。", "Tap “H₂O” on the panel: watch the water molecule assemble itself."),
+                    done = { showing(P_H2O) },
+                    autoplay = { choosePreset(P_H2O) },
+                    reveal = true,
+                    insight = Bi("弯的，104.5°！4 对电子仍成四面体；看不见的孤对更“胖”，把键角挤小。", "Bent, 104.5°! The 4 pairs still form a tetrahedron; the invisible, fatter lone pairs squeeze the angle."),
+                ),
+                LessonStep(
+                    say = Bi("捏掉两个孤对气球（或面板「孤对 1 → 移除」点两次）：水会怎样？", "Pinch away both lone-pair balloons (or “LP 1 → remove” twice): what happens to water?"),
+                    target = "VLobe2",
+                    done = { sim.nBonds == 2 && sim.nLone == 0 && sim.settled },
+                    autoplay = { repeat(2) { val k = firstLone(); if (k >= 0) onTap("VLobe$k") } },
+                    insight = Bi("变直了，180°！水的弯曲全是那两对看不见的孤对推出来的。", "It straightens to 180°! Water's bend comes entirely from its two invisible lone pairs."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("不用预设：用「＋键」「＋孤对」或捏掉原子，搭出氨 NH₃（3 键 + 1 孤对）", "No presets: with “+ bond”, “+ lone pair” or pinching atoms away, build ammonia NH₃ (3 bonds + 1 lone pair)."),
+                progress = {
+                    tr("现在 %s · 平均键角 %.1f° → 目标 AX₃E ≈ 107°", "Now %s · mean angle %.1f° → goal AX₃E ≈ 107°").format(Vsepr.formula(sim.nBonds, sim.nLone), meanAngle())
+                },
+                done = { modified && sim.nBonds == 3 && sim.nLone == 1 && sim.settled },
+                autoplay = {
+                    if (!modified) onTap("PadBond")                              // a preset never counts: touch it first
+                    var guard = 0
+                    while (guard++ < 12 && !(modified && sim.nBonds == 3 && sim.nLone == 1)) when {
+                        sim.nLone > 1 -> onTap("VLobe${firstLone()}")
+                        sim.nBonds > 3 -> onTap("VAtom${firstBond()}")
+                        sim.nBonds < 3 -> onTap("PadBond")
+                        else -> onTap("PadLone")
+                    }
+                },
+            ),
+        )
     }
 
     // ---------------------------------------------------------------- interaction

@@ -40,7 +40,11 @@ import com.bytedance.chemistrylab.core.crystal.Crystals
 import com.bytedance.chemistrylab.core.crystal.Cut
 import com.bytedance.chemistrylab.core.crystal.Model
 import com.bytedance.chemistrylab.core.crystal.Polyhedron
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -959,6 +963,75 @@ object CrystalDemo : SpecDemo() {
             else -> tr("金属键没有方向：原子最密堆积（%.0f %%），原子层滑移后仍被“电子海”粘住 → 铜能拉成丝、敲成片",
                 "Metallic bonding has no direction: close-packed (%.0f %%) layers slip and stay bonded → copper draws into wire").format(100 * cr.packingFraction())
         }
+    }
+
+    // ================================================================ guided track (导学)
+    // KEY INSIGHT: a solid's properties come from HOW its atoms are connected in the lattice, not just from which
+    // atoms they are: each Na⁺ sits among 6 Cl⁻ (octahedron, 282 pm); diamond and graphite are the SAME carbon —
+    // 4 bonds in 3-D (154 pm, no weak plane: hardest) versus sheets of 3 bonds (142 pm) held 335 pm apart by weak
+    // forces (they slide: pencils write).
+
+    private val ready get() = loadT >= 1f
+    private fun probeOn(k: Int = 0) = coordOn && probeK == k
+    /** Pinch the probe atom unless its shell is already lit (a second pinch would switch it off). */
+    private fun lightProbe() { if (!probeOn()) onTap("Probe0") }
+    private fun litCn(): Int = if (!coordOn) 0 else crystal.coordination(model.atoms[model.probes[min(probeK, model.probes.size - 1)]].cls)
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("食盐晶体里，每个 Na⁺ 周围紧贴着几个 Cl⁻？", "In a salt crystal, how many Cl⁻ ions touch each Na⁺?"),
+                    options = listOf(
+                        Bi("4 个", "4"),
+                        Bi("6 个", "6"),
+                        Bi("8 个", "8"),
+                    ),
+                    answer = 1,
+                ),
+                LessonStep(
+                    say = Bi("捏晶格里带光圈的 Na⁺（或面板「Na⁺ → 配位」），数它的邻居。", "Pinch the haloed Na⁺ in the lattice (or “Na⁺ → neighbours” below) and count its neighbours."),
+                    target = "Probe0",
+                    done = { crystalIdx == 0 && probeOn() && ready },
+                    autoplay = { if (crystalIdx != 0) onTap("SpecNaCl"); lightProbe() },
+                    reveal = true,
+                    insight = Bi("6 个 Cl⁻，相距 282 pm，围成正八面体；Na⁺/Cl⁻ 半径比 0.56 正好放下 6 个。", "6 Cl⁻ at 282 pm form an octahedron; the Na⁺/Cl⁻ radius ratio, 0.56, fits exactly 6."),
+                ),
+                LessonStep(
+                    say = Bi("金刚石最硬，铅笔芯（石墨）软得能写字。它们是什么做的？", "Diamond is the hardest; pencil “lead” (graphite) is soft enough to write. What are they made of?"),
+                    options = listOf(
+                        Bi("都是碳", "Both carbon"),
+                        Bi("笔芯是铅", "Pencil: lead"),
+                        Bi("两种元素", "Two elements"),
+                    ),
+                    answer = 0,
+                ),
+                LessonStep(
+                    say = Bi("捏「金刚石」标本，再捏一个带光圈的 C 原子：它连着几个邻居？", "Pinch the diamond specimen, then a haloed C atom: how many neighbours does it hold?"),
+                    target = "SpecDiamond",
+                    done = { crystalIdx == 2 && coordOn && ready },
+                    autoplay = { onTap("SpecDiamond"); lightProbe() },
+                    reveal = true,
+                    insight = Bi("都是碳！金刚石里每个 C 用 4 根 154 pm 键连成三维网，没有薄弱面 → 最硬。", "Both carbon! In diamond each C holds 4 bonds (154 pm) in a 3-D net with no weak plane → hardest."),
+                ),
+                LessonStep(
+                    say = Bi("捏「石墨」标本，再捏住顶层左右拖（或面板「顶层 → 滑动」）。", "Pinch the graphite specimen, then pinch-drag its top layer sideways (or “Top layer → slide”)."),
+                    target = "SpecGraphite",
+                    done = { crystalIdx == 3 && slideTotal > 200f },
+                    autoplay = { onTap("SpecGraphite"); onTap("TopLayer") },
+                    insight = Bi("层内 142 pm 牢牢相连，层间 335 pm 只靠弱力 → 一层层滑开，铅笔就这样写字。", "Layers are bonded tight (142 pm) but held 335 pm apart by weak forces → they slide off: that's how pencils write."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("找出“最挤”的晶体：哪一种里每个原子紧贴 12 个邻居？捏标本，再看配位。", "Find the most crowded crystal: in which does every atom touch 12 neighbours? Pinch specimens, check coordination."),
+                progress = {
+                    if (!coordOn) tr("先打开配位：捏一个带光圈的原子", "Turn on coordination: pinch a haloed atom")
+                    else tr("%s：配位数 %d · 目标 12", "%s: coordination %d · goal 12").format(nm(crystalIdx), litCn())
+                },
+                done = { ready && litCn() == 12 },
+                autoplay = { onTap("SpecCu"); lightProbe() },
+            ),
+        )
     }
 
     // ================================================================ interaction

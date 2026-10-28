@@ -27,7 +27,11 @@ import com.bytedance.chemistrylab.core.catalysis.Catalyst
 import com.bytedance.chemistrylab.core.catalysis.Kinetics
 import com.bytedance.chemistrylab.core.catalysis.Peroxide
 import com.bytedance.chemistrylab.core.catalysis.Reactor
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -116,6 +120,8 @@ object ElephantDemo : SpecDemo() {
     private var rnd = Random(11)
     private var runSeed = 0
     private var lastO2A = 0.0; private var lastO2B = 0.0
+    /** Reactor time (s) at which A had released 0.5 L of O₂ (−1: not yet) — the lesson's challenge clock. */
+    private var tHalfLitreA = -1.0
     private var gasLpsA = 0f; private var gasLpsB = 0f
 
     private const val READY = 0; private const val POURING = 1; private const val RUNNING = 2
@@ -464,6 +470,7 @@ object ElephantDemo : SpecDemo() {
     fun refill() {
         phase = READY; pourT = 0f; rA = null; rB = null; chartT = 0f
         lastO2A = 0.0; lastO2B = 0.0; gasLpsA = 0f; gasLpsB = 0f
+        tHalfLitreA = -1.0
         runSeed++
         for (n in foamNodes) n.visible = false
         fxA.reset(V_PEROX + V_SOAP, 100 + runSeed); fxB.reset(V_PEROX + V_SOAP, 200 + runSeed)
@@ -562,6 +569,7 @@ object ElephantDemo : SpecDemo() {
         if (sdt > 0f) {
             a?.step(sdt.toDouble()); b?.step(sdt.toDouble())
             if (a != null) { gasLpsA = (Peroxide.gasLitres(a.nO2 - lastO2A, a.tK) / sdt).toFloat(); lastO2A = a.nO2 }
+            if (a != null && tHalfLitreA < 0.0 && a.o2L25 >= 0.5) tHalfLitreA = a.t
             if (b != null) { gasLpsB = (Peroxide.gasLitres(b.nO2 - lastO2B, b.tK) / sdt).toFloat(); lastO2B = b.nO2 }
         }
         fxA.update(sdt, ((a?.foamL ?: 0.0) * 1e-3).toFloat(), gasLpsA, soap)
@@ -876,6 +884,60 @@ object ElephantDemo : SpecDemo() {
             3 -> tr("不加催化剂：活化能 75 kJ/mol", "No catalyst: Ea 75 kJ/mol")
             else -> null
         }
+    }
+
+    // ---------------------------------------------------------------- guided track (导学)
+    //
+    // KEY INSIGHT: a catalyst opens a lower-barrier road (KI 56 vs 75 kJ/mol uncatalysed) and comes out
+    // UNCHANGED — I⁻ → IO⁻ → I⁻, each I⁻ cycles ~3 times in the 30 % run and is all still there at the
+    // end. Numbers (core/catalysis, 100 mL + 30 mL, 25 °C): 30 % + KI gives 11.9 L O₂ in ~5 s and boils
+    // (100 °C); the same 30 % without catalyst gives ~3×10⁻⁷ L in 90 s. 3 % (household) + KI needs
+    // 17 s for 0.5 L of O₂; yeast does it in 5.4 s, KI from 45 °C in 4.3 s.
+
+    /** The reactor A had when the step began: a new pour makes a new Reactor. */
+    private var lsRun0: Reactor? = null
+    private const val GOAL_HALF_S = 6.0
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("A 将倒入催化剂 KI，B 不加。猜一猜：反应结束后，A 里的 KI 还剩多少？", "A gets the catalyst KI, B gets none. Predict: when it is over, how much of the KI is left in A?"),
+                    options = listOf(Bi("全用光了", "All used up"), Bi("剩一半", "About half"), Bi("一点没少", "All of it")),
+                    answer = 2,
+                ),
+                LessonStep(
+                    say = Bi("捏住烧杯（或面板「烧杯 → 倒入」）倒入 KI，盯住右上分子盒里紫色的 I⁻。可先选「慢放」。", "Pinch the beaker (or “Beaker → pour”) to pour in KI; watch the purple I⁻ in the molecule cube. “Slow” helps."),
+                    target = "Beaker",
+                    onEnter = { lsRun0 = rA },
+                    done = { val a = rA; a != null && a !== lsRun0 && a.catalyst == Catalyst.KI && a.conversion > 0.99 },
+                    autoplay = { if (catIdx != 0) selectCatalyst(0); pour() },
+                    reveal = true,
+                    insight = Bi("I⁻ 一点没少：它抓住 H₂O₂ 变成 IO⁻，又变回 I⁻，每个循环了约 3 次。催化剂换了条能垒低的路，自己不消耗。", "No I⁻ is lost: it grabs H₂O₂ to become IO⁻, then turns back into I⁻, ~3 cycles each. A lower road; the catalyst survives."),
+                ),
+                LessonStep(
+                    say = Bi("泡沫里是什么气体？捏住带火星的木条（或面板「木条 → 检验 O₂」）伸进 A 的泡沫。", "What gas is in the foam? Pinch the glowing splint (or “Splint → test O₂”) to poke it into A's foam."),
+                    target = "Splint",
+                    done = { flame > 0.3f && spState != SP_HOME },
+                    autoplay = { pokeSplint() },
+                    insight = Bi("木条复燃 → 是 O₂：A 放出约 12 L，还沸腾到 100 °C（放热）。没加催化剂的 B 几乎为 0。", "It relights → O₂: A gave ~12 L and boiled at 100 °C (exothermic). B, with no catalyst, gave almost none."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("换成家用 3% 双氧水（KI 室温要 17 s）。换催化剂或起始温度，让 A 在 6 s 内放出 0.5 L O₂。", "Switch to household 3% H₂O₂ (KI at room T needs 17 s). Change catalyst or start T: 0.5 L of O₂ from A within 6 s."),
+                progress = {
+                    val a = rA
+                    when {
+                        a == null || a === lsRun0 -> tr("A：%s + %s · 起始 %d °C · 目标 6 s 内 0.5 L", "A: %s + %s · start %d °C · goal 0.5 L within 6 s").format(pct(wA()), catShort(cat()), startC.roundToInt())
+                        tHalfLitreA >= 0.0 -> tr("A：%s + %s · 0.5 L 用了 %.1f s · 目标 ≤ 6 s", "A: %s + %s · 0.5 L in %.1f s · goal ≤ 6 s").format(pct(a.w), catShort(a.catalyst), tHalfLitreA)
+                        else -> tr("A：%s + %s · O₂ %.2f L · %.1f s（目标 6 s 内 0.5 L）", "A: %s + %s · O₂ %.2f L · %.1f s (goal 0.5 L within 6 s)").format(pct(a.w), catShort(a.catalyst), a.o2L25, a.t)
+                    }
+                },
+                onEnter = { lsRun0 = rA },
+                done = { val a = rA; a != null && a !== lsRun0 && a.w < 0.05 && tHalfLitreA in 0.0..GOAL_HALF_S },
+                autoplay = { wIdx = 0; selectCatalyst(1); pour() },
+            ),
+        )
     }
 
     override fun isDragTarget(name: String) = name == "Splint"

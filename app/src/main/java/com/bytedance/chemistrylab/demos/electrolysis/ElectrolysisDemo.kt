@@ -35,7 +35,11 @@ import com.bytedance.chemistrylab.core.electrolysis.HalfReaction
 import com.bytedance.chemistrylab.core.electrolysis.Micro
 import com.bytedance.chemistrylab.core.electrolysis.Voltameter
 import com.bytedance.chemistrylab.render.BuoyMesh
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -243,6 +247,7 @@ object ElectrolysisDemo : SpecDemo() {
         clock = 0f; needle = 0f; needleV = 0f; seed = 1L; frame = 0; cockResult = 0
         for (g in tests) { g.t = -1f; g.vent0 = 0.0 }
         bOn.fill(false); bAcc.fill(0f); leadPhase.fill(0.0)
+        refills = 0; bottleTaps = 0
 
         val root = Node("ElectroRoot")
         val unitCyl = MeshGen.cylinder(1f, 1f, 24)
@@ -877,7 +882,7 @@ object ElectrolysisDemo : SpecDemo() {
     override fun onTap(name: String) {
         when (name) {
             "Knob" -> volts = U_STEPS.firstOrNull { it > volts + 0.05f } ?: 0f
-            "Bottle" -> salt = !salt
+            "Bottle" -> { salt = !salt; bottleTaps++ }
             "CockH" -> startTest(0)
             "CockO" -> startTest(1)
             "Reservoir" -> refill()
@@ -910,6 +915,79 @@ object ElectrolysisDemo : SpecDemo() {
         }
     }
 
+    // ---------------------------------------------------------------- guided track (导学)
+    // KEY INSIGHT: water splits into H₂ : O₂ = 2 : 1 by volume — H₂O carries two H per O, and the 4 e⁻
+    // that make ONE O₂ at the anode make TWO H₂ at the cathode. Around it: below the 2.2 V decomposition
+    // voltage nothing happens, and pure water barely conducts (R 5.2 Ω → 6.6 MΩ: the ions only carry current).
+
+    /** Lesson bookkeeping: refills and bottle pinches seen so far, and the baselines a step compares against. */
+    private var refills = 0
+    private var bottleTaps = 0
+    private var uAtStep = 0f
+    private var mark = 0
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("拖动「电压 U」滑块（或捏电源旋钮）把电压降到 2 V，看电流表和气泡。", "Drag the Voltage U slider (or pinch the supply knob) down to 2 V — watch the ammeter and the bubbles."),
+                    target = "Knob",
+                    onEnter = { uAtStep = volts },
+                    done = { volts in 0.4f..Cell.U_DEC.toFloat() && volts != uAtStep },
+                    autoplay = { volts = 2f },
+                    insight = Bi("电流归零，气泡停了：低于分解电压 2.2 V（理论 1.23 V + 电极过电位），水不会分解。", "The current drops to zero and the bubbles stop: below the 2.2 V decomposition voltage (1.23 V + overpotentials) water does not split."),
+                ),
+                LessonStep(
+                    say = Bi("捏储液球（或「储液球 → 加满重来」），把两根管重新灌满、清零。", "Pinch the reservoir (or “Reservoir → refill”) to fill both tubes again and reset."),
+                    target = "Reservoir",
+                    onEnter = { mark = refills },
+                    done = { refills > mark },
+                    autoplay = { onTap("Reservoir") },
+                ),
+                LessonStep(
+                    say = Bi("马上通电：阴极出 H₂，阳极出 O₂。哪根管里的气体涨得更快？", "About to switch on: H₂ forms at the cathode, O₂ at the anode. Which tube fills faster?"),
+                    options = listOf(
+                        Bi("H₂ 管（阴极）", "H₂ tube (cathode)"),
+                        Bi("O₂ 管（阳极）", "O₂ tube (anode)"),
+                        Bi("一样快", "Same speed"),
+                    ),
+                    answer = 0,
+                ),
+                LessonStep(
+                    say = Bi("把电压调回 6 V，等 H₂ 管收集到 10 mL，比一比两根管的刻度。", "Turn the voltage back up to 6 V and wait until the H₂ tube holds 10 mL — compare the two scales."),
+                    target = "Knob",
+                    done = { volts > Cell.U_DEC && cell.producedH >= 10.0 },
+                    autoplay = { volts = 6f },
+                    reveal = true,
+                    insight = Bi("H₂ 10 mL，O₂ 5 mL：正好 2 : 1。H₂O 里 H 是 O 的两倍；4 个 e⁻ 只造 1 个 O₂，却能造 2 个 H₂。", "H₂ 10 mL, O₂ 5 mL: exactly 2 : 1. Water has two H per O; 4 e⁻ make one O₂ but two H₂."),
+                ),
+                LessonStep(
+                    say = Bi("捏试剂瓶（或「试剂瓶 → 加 Na₂SO₄」）把 Na₂SO₄ 去掉，换成纯水。", "Pinch the reagent bottle (or “Bottle → add Na₂SO₄”) to take the Na₂SO₄ out: pure water."),
+                    target = "Bottle",
+                    onEnter = { mark = bottleTaps },
+                    done = { bottleTaps > mark && !salt },
+                    autoplay = { repeat(if (salt) 1 else 2) { onTap("Bottle") } },
+                    insight = Bi("电流掉到百万分之一（5 Ω → 6.6 MΩ）：纯水几乎没有离子。Na⁺、SO₄²⁻ 只导电，不参加反应。", "The current falls a millionfold (5 Ω → 6.6 MΩ): pure water has almost no ions. Na⁺ and SO₄²⁻ only carry the current."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("加回 Na₂SO₄，收集 10.0 mL O₂ 就把电压降到 2 V（±0.5 mL）。盯 H₂ 管更好读！", "Add the Na₂SO₄ back; collect 10.0 mL of O₂, then drop to 2 V (±0.5 mL). The H₂ tube is easier to read!"),
+                progress = { tr("O₂ %.1f mL · H₂ %.1f mL · 目标 O₂ 10.0 ± 0.5 mL 后断电", "O₂ %.1f mL · H₂ %.1f mL · goal: O₂ 10.0 ± 0.5 mL, then switch off").format(cell.gasO, cell.gasH) },
+                done = { salt && volts <= Cell.U_DEC && abs(cell.gasO - 10.0) <= 0.5 },
+                // a fresh pair of tubes to count from
+                onEnter = { refill() },
+                // what a patient student does: salt in, 6 V, watch the H₂ tube reach 20 mL, switch off
+                autoplay = {
+                    if (!salt) onTap("Bottle")
+                    if (volts <= Cell.U_DEC) volts = 6f
+                    var n = 0
+                    while (cell.gasO < 10.0 && n++ < 60 * 300) update(1f / 60f)
+                    volts = 0f
+                },
+            ),
+        )
+    }
+
     private var dragU = 0f
     override fun onDragStart(name: String) { dragU = volts }
     /** Hand right / up turns the knob up: 30 V per metre of hand travel (40 cm ≈ full scale). */
@@ -920,7 +998,7 @@ object ElectrolysisDemo : SpecDemo() {
     override fun onDragEnd(name: String) { frame = 0 }
 
     fun refill() {
-        cell.refill()
+        cell.refill(); refills++
         for (g in tests) g.t = -1f
         bOn.fill(false); bAcc.fill(0f)
     }

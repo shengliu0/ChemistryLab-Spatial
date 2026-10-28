@@ -33,7 +33,11 @@ import com.bytedance.chemistrylab.core.galvanic.Galv
 import com.bytedance.chemistrylab.core.galvanic.GalvanicCell
 import com.bytedance.chemistrylab.core.galvanic.HalfCell
 import com.bytedance.chemistrylab.core.galvanic.Metal
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -318,6 +322,7 @@ object DaniellDemo : SpecDemo() {
         cell.reset(); cSet[0] = 1.0; cSet[1] = 1.0
         speedIdx = 2; clock = 0f; frame = 0; textEn = Lang.en; seed = 1836L
         lift = 0f; blade = 0f; vNeedle = 0f; vNeedleV = 0f; aNeedle = 0f; aNeedleV = 0f; fanW = 0f; fanA = 0f; beadPhase = 0.0
+        switchTaps = 0; bridgeTaps = 0
         lastTap = ""; liqKey.fill(-1); stripKey.fill(-1); clipPol.fill(99); beadsLit = -1
         for (i in 0 until N_K) kS[i] = (1f + EXT) * i / N_K
         for (i in 0 until N_NO3) nS[i] = (1f + EXT) * (i + 0.5f) / N_NO3
@@ -963,7 +968,7 @@ object DaniellDemo : SpecDemo() {
     override fun onTap(name: String) {
         lastTap = when (name) {
             "Bridge" -> {
-                cell.bridgeIn = !cell.bridgeIn
+                cell.bridgeIn = !cell.bridgeIn; bridgeTaps++
                 if (!cell.bridgeIn) tr("拿走盐桥：离子不能迁移，两边电荷堆积 → 电流立刻停止，电压表回到 0 V",
                     "Salt bridge out: ions can no longer migrate, charge piles up on both sides → the current stops at once, the voltmeter drops to 0 V")
                 else if (!cell.switchClosed) tr("放回盐桥：内电路接通；开关断开，电压表读到电动势 E = %.3f V",
@@ -972,7 +977,7 @@ object DaniellDemo : SpecDemo() {
                     "Salt bridge back: K⁺ drift to the cathode, NO₃⁻ to the anode, both beakers stay neutral → the current is back, %.2f mA").format(cell.loadCurrent() * 1e3)
             }
             "Switch" -> {
-                cell.switchClosed = !cell.switchClosed
+                cell.switchClosed = !cell.switchClosed; switchTaps++
                 when {
                     !cell.switchClosed && !cell.closedLoop -> tr("断开开关：盐桥不在，电路本来就是断的，I = 0、电压表 0 V",
                         "Switch open: the salt bridge is out, so the loop was open anyway: I = 0, voltmeter 0 V")
@@ -1001,6 +1006,71 @@ object DaniellDemo : SpecDemo() {
             else -> ""
         }
         frame = 0
+    }
+
+    // ---------------------------------------------------------------- guided track (导学)
+    // KEY INSIGHT: the voltage is a difference in how readily two metals give up electrons — Zn more than
+    // Cu, E° = 0.34 − (−0.76) = 1.10 V — and it only drives a current when the loop is closed twice:
+    // electrons through the wire AND ions through the salt bridge. Metals further apart in the series
+    // (Mg Zn Fe Pb Cu Ag) give a higher voltage.
+
+    /** Lesson bookkeeping: switch / bridge pinches seen so far, and the baseline a step compares against. */
+    private var switchTaps = 0
+    private var bridgeTaps = 0
+    private var mark = 0
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("电压表现在约 0.61 V。捏电路板顶上的开关（或「开关 → 合上/断开」）断开它，再读电压表。", "The voltmeter reads about 0.61 V. Pinch the switch on top of the board (or “Switch → on/off”) to open it, then read it again."),
+                    target = "Switch",
+                    // real time for the lesson: at 1 s = 1 day the Cu²⁺ would run out (E → 0) within ~35 s
+                    onEnter = { speedIdx = 0; mark = switchTaps },
+                    done = { !cell.switchClosed && switchTaps > mark },
+                    autoplay = { repeat(if (cell.switchClosed) 1 else 2) { onTap("Switch") } },
+                    insight = Bi("开关断开时读到 1.10 V，这就是电动势：锌比铜更爱丢电子，E° 差 0.34 − (−0.76) = 1.10 V。", "With the switch open it reads 1.10 V, the EMF: zinc gives up electrons more readily than copper, E° 0.34 − (−0.76) = 1.10 V."),
+                ),
+                LessonStep(
+                    say = Bi("如果把中间的盐桥拿走（导线还连着），电压表会怎样？", "If you lift out the salt bridge in the middle (the wires stay connected), what does the voltmeter do?"),
+                    options = listOf(
+                        Bi("还是 1.10 V", "Still 1.10 V"),
+                        Bi("降到 0 V", "Drops to 0 V"),
+                        Bi("指针反偏", "Swings backwards"),
+                    ),
+                    answer = 1,
+                ),
+                LessonStep(
+                    say = Bi("捏住盐桥（或「盐桥 → 拿出/放回」）把它提出来，看电压表。", "Pinch the salt bridge (or “Bridge → lift/replace”) to lift it out — watch the voltmeter."),
+                    target = "Bridge",
+                    onEnter = { mark = bridgeTaps },
+                    done = { !cell.bridgeIn && bridgeTaps > mark },
+                    autoplay = { repeat(if (cell.bridgeIn) 1 else 2) { onTap("Bridge") } },
+                    reveal = true,
+                    insight = Bi("电压表 0 V：电子走导线，离子要走盐桥。两条路缺一条，回路就断了。", "The voltmeter falls to 0 V: electrons take the wire, ions must take the bridge. Lose either path and the loop is open."),
+                ),
+                LessonStep(
+                    say = Bi("捏盐桥放回去，再捏右边的铜片（或「右电极 → 换金属」）换成银 Ag。", "Pinch the bridge back in, then pinch the copper strip on the right (or “Right strip → swap”) to make it silver, Ag."),
+                    target = "ElecR",
+                    done = { cell.bridgeIn && cell.right.metal == Metal.AG },
+                    autoplay = {
+                        if (!cell.bridgeIn) onTap("Bridge")
+                        if (cell.right.metal == Metal.CU) onTap("ElecR") else setMetal(1, Metal.AG)
+                    },
+                    insight = Bi("Zn|Ag：E° = 0.80 − (−0.76) = 1.56 V。两种金属在 Mg Zn Fe Pb Cu Ag 里隔得越远，电压越高。", "Zn|Ag: E° = 0.80 − (−0.76) = 1.56 V. The further apart two metals sit in Mg Zn Fe Pb Cu Ag, the higher the voltage."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("只换金属，搭一个电动势超过 3 V 的电池（盐桥要放好）。", "Only by swapping metals, build a cell whose EMF is above 3 V (with the salt bridge in)."),
+                progress = { tr("E°池 = %.2f V（%s | %s）· 目标 > 3 V", "E°cell = %.2f V (%s | %s) · goal > 3 V").format(cell.standardEmf(), cell.left.metal.symbol, cell.right.metal.symbol) },
+                done = { cell.closedLoop && cell.standardEmf() > 3.0 },
+                // the two ends of the series: magnesium gives electrons most readily, silver least
+                autoplay = {
+                    if (!cell.bridgeIn) onTap("Bridge")
+                    setMetal(0, Metal.MG); setMetal(1, Metal.AG)
+                },
+            ),
+        )
     }
 
     override fun tapMessage(name: String): String? = lastTap.ifEmpty { null }

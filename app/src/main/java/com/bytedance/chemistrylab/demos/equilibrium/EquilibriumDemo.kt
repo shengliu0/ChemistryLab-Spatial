@@ -40,7 +40,11 @@ import com.bytedance.chemistrylab.core.equilibrium.Dimerization
 import com.bytedance.chemistrylab.core.equilibrium.MicroBox
 import com.bytedance.chemistrylab.core.equilibrium.NO2Optics
 import com.bytedance.chemistrylab.core.equilibrium.Vessel
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -728,6 +732,89 @@ object EquilibriumDemo : SpecDemo() {
     }
 
     override fun tapMessage(name: String): String? = lastTap.ifEmpty { null }
+
+    // ================================================================ guided track (导学)
+    //
+    // KEY INSIGHT: equilibrium is DYNAMIC (both reactions keep running at equal rates), and a disturbed
+    // equilibrium shifts to COUNTERACT the disturbance — squeeze it and it makes fewer molecules (paler
+    // N₂O₄, c(NO₂) ×1.33 at once, then only ×1.17); cool it and it runs the exothermic way (x(NO₂) ~29 %
+    // at 25 °C → ~12 % at 0 °C, flask B after one squeeze). Numbers: core/equilibrium for flask B (200 mL at 1.000 bar, 25 °C).
+
+    private var lsAssoc0 = 0L; private var lsDissoc0 = 0L
+    private var lsSqueeze0 = 0.0
+    private val lsX0 = DoubleArray(3)
+
+    /** Molecule-window events since [lsAssoc0]/[lsDissoc0] (re-baselined when the window resets). */
+    private fun eventsSinceBase(): Pair<Long, Long> {
+        if (micro.assocEvents < lsAssoc0 || micro.dissocEvents < lsDissoc0) { lsAssoc0 = micro.assocEvents; lsDissoc0 = micro.dissocEvents }
+        return (micro.assocEvents - lsAssoc0) to (micro.dissocEvents - lsDissoc0)
+    }
+
+    /** A squeeze of flask B started after [since], the plunger has stopped, and ≥ 75 % of the relaxation is done. */
+    internal fun squeezeRelaxed(since: Double): Boolean {
+        if (evKind != 1 || evStart <= since || evV1 >= evV0 - 1e-9) return false
+        if (abs(syringeMl - syringeTarget) > 0.01) return false
+        val b = vessels[1]
+        val peak = evC0 * evV0 / evV1; val eq = b.cNO2Eq()
+        return b.cNO2() - eq < 0.25 * (peak - eq)
+    }
+
+    /** Equilibrium x(NO₂) of flask B at bath temperature [tC] and its present volume. */
+    private fun xEqB(tC: Double): Double {
+        val b = vessels[1]; val tK = tC + Dimerization.KELVIN
+        return Dimerization.moleFractionNO2(Dimerization.alphaEq(b.units * Dimerization.R * tK / b.volume / Dimerization.P_STD, tK))
+    }
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("烧瓶颜色已不再变化。看上方分子窗口：暖色闪光 = 两个 NO₂ 结合，冷色 = N₂O₄ 拆开。", "The flask colour has stopped changing. Watch the molecule window: warm flash = two NO₂ join, cool flash = N₂O₄ splits."),
+                    target = "Flask1",
+                    onEnter = { lsAssoc0 = micro.assocEvents; lsDissoc0 = micro.dissocEvents },
+                    done = { val (a, d) = eventsSinceBase(); a >= 6 && d >= 6 },
+                    autoplay = { if (!showMicro) { showMicro = true; microFlask = -1 }; onTap("Flask1") },
+                    insight = Bi("颜色不变，反应却没停：每秒结合和拆开的次数一样多 —— 这就是「动态平衡」。", "The colour is steady, yet reactions never stop: as many join as split each second — dynamic equilibrium."),
+                ),
+                LessonStep(
+                    say = Bi("捏一下烧瓶 B 的活塞（或面板「活塞 → 推/拉」）压缩气体，盯住颜色和右边的图。", "Pinch flask B's plunger (or “Plunger → push/pull” below) to squeeze the gas; watch the colour and the chart."),
+                    target = "Plunger",
+                    onEnter = { lsSqueeze0 = evStart },
+                    done = { squeezeRelaxed(lsSqueeze0) },
+                    autoplay = { onTap("Plunger") },
+                    insight = Bi("先变深：同样多分子挤进 3/4 空间，c(NO₂) ×1.33；再变浅到 ×1.17 —— 平衡移向分子更少的 N₂O₄。", "Darker first: same molecules in 3/4 the space, c(NO₂) ×1.33; then paler, ×1.17 — it shifts to fewer molecules (N₂O₄)."),
+                ),
+                LessonStep(
+                    say = Bi("猜一猜：把烧瓶 B 放进冰水里，它会变深还是变浅？", "Predict: put flask B into ice water — will it get darker or paler?"),
+                    options = listOf(Bi("变深", "Darker"), Bi("变浅", "Paler"), Bi("不变", "No change")),
+                    answer = 1,
+                ),
+                LessonStep(
+                    say = Bi("捏住烧瓶 B 选中它，再捏住左边的冰水烧杯（或面板「冰水 → 放入」）。", "Pinch flask B to select it, then pinch the ice-water beaker on the left (or “Ice water → put in”)."),
+                    target = "Bath0",
+                    onEnter = { for (f in 0 until 3) lsX0[f] = vessels[f].moleFractionNO2() },
+                    done = { (0 until 3).any { vessels[it].moleFractionNO2() < 0.6 * lsX0[it] } },
+                    autoplay = { onTap("Flask1"); onTap("Bath0") },
+                    reveal = true,
+                    insight = Bi("变浅了：NO₂ 从约 29% 降向约 12%。降温时，平衡向放热方向（生成无色 N₂O₄）移动，抵消降温。", "Paler: NO₂ falls from ~29% toward ~12%. Cooling shifts it the exothermic way (to colourless N₂O₄), countering the cold."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("只用面板的水浴滑块，让烧瓶 B 里正好一半是 NO₂（摩尔分数 50%，±3%）。", "Using only the bath slider, make exactly half of flask B NO₂ (mole fraction 50%, ±3%)."),
+                progress = { tr("烧瓶 B：NO₂ %.0f%% · 目标 50%% · 水浴 %d°C", "Flask B: NO₂ %.0f%% · goal 50%% · bath %d°C").format(100 * vessels[1].moleFractionNO2(), bathT[stationOf[1]].roundToInt()) },
+                done = {
+                    val b = vessels[1]
+                    abs(b.moleFractionNO2() - 0.5) < 0.03 && abs(b.tGas - (bathT[stationOf[1]] + Dimerization.KELVIN)) < 1.0 && abs(b.alpha - b.alphaEq()) < 0.01
+                },
+                autoplay = {
+                    onTap("Flask1")
+                    var lo = -10.0; var hi = 100.0
+                    repeat(40) { val m = (lo + hi) / 2; if (xEqB(m) < 0.5) lo = m else hi = m }
+                    setSelectedBath(((lo + hi) / 2).roundToInt().toFloat())
+                },
+            ),
+        )
+    }
 
     override fun onDragStart(name: String) { select(1); dragV0 = syringeTarget.toDouble(); dragAcc = 0f }
     override fun onDrag(name: String, dx: Float, dy: Float, dz: Float) {

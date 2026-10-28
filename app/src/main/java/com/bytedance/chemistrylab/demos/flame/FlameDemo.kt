@@ -36,6 +36,10 @@ import com.bytedance.chemistrylab.core.flame.Sample
 import com.bytedance.chemistrylab.core.optics.Spectrum
 import com.bytedance.chemistrylab.render.OptGeo
 import com.bytedance.chemistrylab.lab.BakeCache
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Lang
 import com.bytedance.chemistrylab.lab.LabHost
 import com.bytedance.chemistrylab.lab.Q
@@ -147,6 +151,11 @@ object FlameDemo : SpecDemo() {
     private var styleKey = ""
     private var textKey = ""
     private var diagramIdx = -1
+    // guided track: the next "?" sample is NaCl + KCl (set by the lesson); "Reveal" used this round; cobalt seen down
+    private var forceNaK = false
+    private var revealed = false
+    private var sawGlassDown = false
+    private var mysteryBase = 0
 
     private val MYSTERY_POOL = listOf(listOf(0, 1), listOf(0), listOf(1), listOf(2), listOf(3), listOf(4), listOf(5), listOf(6),
         listOf(0, 2), listOf(1, 2), listOf(4, 5))
@@ -290,6 +299,7 @@ object FlameDemo : SpecDemo() {
         cobaltUp = false; burnerOn = true; mysteryOn = false; solved = false; showSpectrum = true; showLevels = true
         mystery = null; found.clear(); wrong = 0; mysteryCount = 0; rng = java.util.Random(1860); lastAnswer = 0; lastAnswerIdx = -1
         cardFlash = FloatArray(7); styleKey = ""; textKey = ""; diagramIdx = -1; glassShown = -1f
+        forceNaK = false; revealed = false; sawGlassDown = false; mysteryBase = 0
         tip = TIP_FLAME; carrying = Sample(Salts.ALL[DEFAULT]); carryingUnknown = false; carryingIdx = DEFAULT
         shown = carrying; shownUnknown = false; shownIdx = DEFAULT
 
@@ -871,6 +881,75 @@ object FlameDemo : SpecDemo() {
         }, P3((DISH_X.first() + DISH_X.last()) / 2, BENCH - 0.012f, RACK_Z + 0.09f))
     }
 
+    // ---------------------------------------------------------------- guided track (导学)
+    // KEY INSIGHT: every element emits its OWN sharp lines (electrons falling between its fixed energy levels) — a
+    // fingerprint; the flame colour is only what those lines add up to, so sodium's 589 nm yellow (where the eye is
+    // most sensitive) hides potassium's violet until cobalt glass removes it (Na 589 nm passes 0.001 %, K 90 %).
+
+    private val inFlame get() = burnerOn && heat > 0.6f
+    private fun showing(i: Int) = inFlame && !shownUnknown && shownIdx == i
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("捏「NaCl」那盘盐（或面板「NaCl → 蘸取」）：看右上分光镜亮起哪几条线。", "Pinch the NaCl dish (or “NaCl → dip” below): which lines light up in the spectroscope?"),
+                    target = "Dish0",
+                    done = { showing(0) },
+                    autoplay = { onTap("Dish0") },
+                    insight = Bi("钠只发 589.0 / 589.6 nm 两条黄线（光子 2.10 eV）：这就是钠的“指纹”。", "Sodium emits just two yellow lines, 589.0 / 589.6 nm (2.10 eV photons): sodium's fingerprint."),
+                ),
+                LessonStep(
+                    say = Bi("再捏「KCl」：钾的谱线落在哪里？和钠比一比。", "Now pinch KCl: where are potassium's lines? Compare them with sodium's."),
+                    target = "Dish1",
+                    done = { showing(1) },
+                    autoplay = { onTap("Dish1") },
+                    insight = Bi("钾是 766.5 nm 深红 + 404.4 nm 紫，焰色淡紫。能级不同 → 谱线不同。", "Potassium: 766.5 nm deep red + 404.4 nm violet — a violet flame. Different levels → different lines."),
+                ),
+                LessonStep(
+                    say = Bi("钠和钾混在一起放进火焰，你猜是什么颜色？", "Sodium and potassium together in the flame: what colour do you expect?"),
+                    options = listOf(
+                        Bi("淡紫色", "Violet"),
+                        Bi("橙黄色", "Yellow-orange"),
+                        Bi("混成粉色", "A pink mix"),
+                    ),
+                    answer = 1,
+                ),
+                LessonStep(
+                    say = Bi("捏「?」盘（或面板「新的未知样品」）：一份钠 + 钾的混合盐进火焰。", "Pinch the “?” dish (or “New unknown sample”): a sodium + potassium mix goes in."),
+                    target = "DishQ",
+                    onEnter = { forceNaK = true },
+                    done = { inFlame && mysteryOn && shownUnknown && mystery == MYSTERY_POOL[0] },
+                    autoplay = { onTap("DishQ") },
+                    reveal = true,
+                    insight = Bi("橙黄色！钠的 589 nm 正落在人眼最敏感处，一点钠就盖住了钾的紫光。", "Yellow-orange! Sodium's 589 nm sits where the eye is most sensitive and drowns potassium's violet."),
+                ),
+                LessonStep(
+                    say = Bi("捏蓝色钴玻璃把它举起来（或打开面板「蓝色钴玻璃」），再看火焰。", "Pinch the cobalt glass to raise it (or switch on “Cobalt glass”), then look at the flame."),
+                    target = "Cobalt",
+                    onEnter = { sawGlassDown = !cobaltUp },
+                    done = { if (!cobaltUp) sawGlassDown = true; sawGlassDown && cobaltUp && glassT > 0.9f && inFlame },
+                    autoplay = { applyCobalt(true) },
+                    insight = Bi("钴玻璃只让钠光透过 0.001%，钾的 766 / 404 nm 透过 90% → 紫色现形。", "Cobalt glass passes 0.001 % of sodium's light but 90 % of potassium's 766 / 404 nm → violet appears."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("捏「?」盘换一份新样品：对照谱线表，捏元素卡认出全部元素，一次不错。", "Pinch “?” for a new sample: match its lines with the chart and pinch the right element cards, no mistakes."),
+                progress = {
+                    when {
+                        mysteryCount <= mysteryBase || mystery == null -> tr("先捏「?」盘取一份新样品", "First pinch the “?” dish for a new sample")
+                        revealed -> tr("看了答案不算 —— 再捏「?」盘换一份", "Peeking doesn't count — pinch “?” for another")
+                        wrong > 0 -> tr("错了 %d 次 —— 再捏「?」盘换一份重来", "%d wrong — pinch “?” for another and retry").format(wrong)
+                        else -> tr("已认出 %d / %d 种元素", "%d of %d elements found").format(found.size, mystery?.size ?: 0)
+                    }
+                },
+                done = { mysteryCount > mysteryBase && solved && !revealed && wrong == 0 },
+                autoplay = { onTap("DishQ"); mystery?.forEach { onTap("Card$it") } },
+                onEnter = { mysteryBase = mysteryCount },
+            ),
+        )
+    }
+
     // ---------------------------------------------------------------- interaction
 
     override val tapTargets: List<TapTarget> get() {
@@ -920,11 +999,12 @@ object FlameDemo : SpecDemo() {
 
     private fun newMystery() {
         val prev = mystery
-        var pick = if (mysteryCount == 0) MYSTERY_POOL[0] else MYSTERY_POOL[rng.nextInt(MYSTERY_POOL.size)]
+        var pick = if (mysteryCount == 0 || forceNaK) MYSTERY_POOL[0] else MYSTERY_POOL[rng.nextInt(MYSTERY_POOL.size)]
         var guard = 0
-        while (pick == prev && guard++ < 10) pick = MYSTERY_POOL[rng.nextInt(MYSTERY_POOL.size)]
+        while (pick == prev && !forceNaK && guard++ < 10) pick = MYSTERY_POOL[rng.nextInt(MYSTERY_POOL.size)]
+        forceNaK = false
         mysteryCount++
-        mystery = pick; found.clear(); wrong = 0; solved = false; mysteryOn = true; lastAnswer = 0
+        mystery = pick; found.clear(); wrong = 0; solved = false; mysteryOn = true; lastAnswer = 0; revealed = false
         dipInto(7, Sample(*pick.map { Salts.ALL[it] }.toTypedArray()), true, -1)
     }
 
@@ -936,7 +1016,7 @@ object FlameDemo : SpecDemo() {
         else { wrong++; lastAnswer = -1; cardFlash[i] = 0.8f }
     }
 
-    fun reveal() { val m = mystery ?: return; found.addAll(m); solved = true }
+    fun reveal() { val m = mystery ?: return; found.addAll(m); solved = true; revealed = true }
     fun applyCobalt(on: Boolean) { cobaltUp = on }
 
     override fun reviewVariants(): Map<String, () -> Unit> = mapOf(

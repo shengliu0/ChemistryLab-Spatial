@@ -34,7 +34,11 @@ import com.bytedance.chemistrylab.core.rates.Arrhenius
 import com.bytedance.chemistrylab.core.rates.CollisionBox
 import com.bytedance.chemistrylab.core.rates.Thiosulfate
 import com.bytedance.chemistrylab.core.rates.XRun
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -585,6 +589,7 @@ object RatesDemo : SpecDemo() {
         while (results.size > points.size) results.removeAt(0)
         lastDone = s; lastDoneAge = 0f; doneFlash[s] = 0f
         chartDirty = true
+        finished[s]++
     }
 
     private fun smooth(t: Float): Float { val x = t.coerceIn(0f, 1f); return x * x * (3 - 2 * x) }
@@ -1002,6 +1007,7 @@ object RatesDemo : SpecDemo() {
         lastTap = when {
             name.startsWith("Flask") -> {
                 val s = name.removePrefix("Flask").toIntOrNull() ?: return
+                flaskTaps[s]++
                 val wasSel = selected == s
                 select(s)
                 val r = runs[s]
@@ -1034,6 +1040,71 @@ object RatesDemo : SpecDemo() {
             }
             else -> ""
         }
+    }
+
+    // ================================================================ guided track (导学)
+    //
+    // KEY INSIGHT (Arrhenius): only collisions with energy above Ea react, so +10 °C roughly DOUBLES the
+    // rate (k ×2.00 at 25 → 35 °C, Ea = 53 kJ/mol) although molecules get only 1.7 % faster: the
+    // high-energy TAIL of the Maxwell–Boltzmann distribution grows far faster than the average.
+    // Numbers (core/rates, 0.15 mol/L): the X goes in 84 / 40 / 20 / 10 s at 15 / 25 / 35 / 45 °C;
+    // 15 → 45 °C: mean speed +5 %, k ×8.05 (= 2 × 2 × 2).
+
+    /** Runs finished per flask and pinches per flask (monotonic; the lesson compares against a baseline). */
+    private val finished = IntArray(4)
+    private val flaskTaps = IntArray(4)
+    private val lsFin0 = IntArray(4)
+    private val lsTap0 = IntArray(4)
+    private const val GOAL_S = 15.0
+
+    private fun lsMark() { for (s in 0 until 4) { lsFin0[s] = finished[s]; lsTap0[s] = flaskTaps[s] } }
+
+    /** Challenge: a run of flask 1 started and finished since the challenge began, within [GOAL_S]. */
+    private fun flask1Beat(): Boolean { val r = runs[0]; return finished[0] > lsFin0[0] && r != null && r.obscured && r.tObscured <= GOAL_S }
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("四瓶溶液只差温度，相邻差 10 °C。从 25 °C 升到 35 °C，反应会快多少？", "The four flasks differ only in temperature, 10 °C apart. From 25 to 35 °C, how much faster is the reaction?"),
+                    options = listOf(Bi("快 2%", "2% faster"), Bi("翻一倍", "Twice"), Bi("快 10 倍", "10×")),
+                    answer = 1,
+                ),
+                LessonStep(
+                    say = Bi("点面板「全部开始」（或逐个捏住烧瓶），可切「快进 ×4」。等烧瓶 2、3 的 X 都消失。", "Tap “Start all” below (or pinch each flask); “Fast ×4” helps. Wait until the X vanishes in flasks 2 and 3."),
+                    target = "Flask1",
+                    onEnter = { lsMark() },
+                    done = { finished[1] > lsFin0[1] && finished[2] > lsFin0[2] },
+                    autoplay = { speedIdx = 1; startAll() },
+                    reveal = true,
+                    insight = Bi("25 °C 用了约 40 s，35 °C 只要约 20 s：只升温 10 °C，速率就翻倍（×2.0）。", "About 40 s at 25 °C but only ~20 s at 35 °C: just +10 °C doubles the rate (×2.0)."),
+                ),
+                LessonStep(
+                    say = Bi("为什么？先捏住烧瓶 1（15 °C），再捏住烧瓶 4（45 °C），比较右边直方图的金色尾巴。", "Why? Pinch flask 1 (15 °C), then flask 4 (45 °C), and compare the gold tail of the histogram on the right."),
+                    target = "Flask0",
+                    onEnter = { lsMark() },
+                    done = { flaskTaps[0] > lsTap0[0] && flaskTaps[3] > lsTap0[3] && selected == 3 },
+                    autoplay = { onTap("Flask0"); onTap("Flask3") },
+                    insight = Bi("15 → 45 °C：分子平均只快 5%，能量超过 Ea 的碰撞却 ×8（= 2×2×2）。速率看的是「尾巴」。", "15 → 45 °C: molecules only 5% faster, but collisions above Ea ×8 (= 2×2×2). Rate follows the tail."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("烧瓶 1 要 84 s。改它的水浴温度（捏旋钮或面板滑块），让 X 在 15 s 内消失。", "Flask 1 takes 84 s. Change its bath (pinch the knob or use the slider) so its X vanishes within 15 s."),
+                progress = {
+                    val r = runs[0]
+                    val last = when {
+                        r != null && r.obscured -> tr("上次 %.1f s", "last %.1f s").format(r.tObscured)
+                        r != null -> tr("计时 %.0f s", "timing %.0f s").format(r.t)
+                        else -> tr("未开始", "not started")
+                    }
+                    tr("烧瓶 1：水浴 %d °C · 液体 %.0f °C · %s · 目标 ≤ 15 s", "Flask 1: bath %d °C · liquid %.0f °C · %s · goal ≤ 15 s")
+                        .format(bathT[0].roundToInt(), liquidK[0] - Arrhenius.KELVIN, last)
+                },
+                onEnter = { lsMark() },
+                done = { flask1Beat() },
+                autoplay = { setBath(0, 55f); startAll() },
+            ),
+        )
     }
 
     private fun bathMessage(s: Int, old: Float, v: Float): String {

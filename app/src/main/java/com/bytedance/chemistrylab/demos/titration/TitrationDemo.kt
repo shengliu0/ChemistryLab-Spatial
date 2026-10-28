@@ -41,7 +41,11 @@ import com.bytedance.chemistrylab.core.titration.MicroTargets
 import com.bytedance.chemistrylab.core.titration.Titration
 import com.bytedance.chemistrylab.demos.flame.StrokeText
 import com.bytedance.chemistrylab.lab.BakeCache
+import com.bytedance.chemistrylab.lab.Bi
+import com.bytedance.chemistrylab.lab.Challenge
 import com.bytedance.chemistrylab.lab.Lang
+import com.bytedance.chemistrylab.lab.Lesson
+import com.bytedance.chemistrylab.lab.LessonStep
 import com.bytedance.chemistrylab.lab.Q
 import com.bytedance.chemistrylab.lab.SpecDemo
 import com.bytedance.chemistrylab.lab.TapTarget
@@ -574,7 +578,7 @@ object TitrationDemo : SpecDemo() {
 
     /** Fresh flask: 25.00 mL of [a] + [ind], burette filled to [drops] already delivered (0 = full), stopcock shut. */
     private fun setup(a: Acid, ind: Indicator, drops: Int) {
-        acid = a; indicator = ind; tit = Titration(a)
+        acid = a; indicator = ind; tit = Titration(a); setups++
         nOut = drops.coerceIn(0, MAX_DROPS); nLanded = nOut; nMixed = nOut
         pending = 0; tipFill = 0f; flow = 0f
         dOn.fill(false); parcels.clear()
@@ -984,6 +988,81 @@ object TitrationDemo : SpecDemo() {
                     .format(indName(), rangeText(), acidName(), tit.veqMl + e, e, fit)
             }
         }
+    }
+
+    // ================================================================ guided track (导学)
+    // KEY INSIGHT: pH creeps up while acid is left, then JUMPS at the equivalence point — the drop before
+    // 25.00 mL gives pH 4.0, the drop after gives pH 10.0 — and the indicator only reads that jump as a colour.
+    // A weak acid adds a flat buffer region (pH = pKa = 4.76 half-way) and ends above 7 (pH 8.73).
+
+    /** Lesson bookkeeping: flasks set up so far (refill / acid bottle) and the baseline a step compares against. */
+    private var setups = 0
+    private var mark = 0
+
+    /** The first drop (burette reading / 0.05 mL) at which the current indicator turns in the current acid. */
+    internal fun turnDrop(): Int = table(acid).indexOfFirst { it >= pe }.let { if (it < 0) MAX_DROPS else it }
+
+    override val lesson: Lesson by lazy {
+        Lesson(
+            listOf(
+                LessonStep(
+                    say = Bi("先捏烧瓶（或「烧瓶 → 重新装液」）从头开始：25.00 mL 盐酸 + 酚酞，pH 1.00。", "First pinch the flask (or “Flask → refill”) to start over: 25.00 mL of HCl + phenolphthalein, pH 1.00."),
+                    target = "Flask",
+                    onEnter = { mark = setups },
+                    done = { setups > mark && acid == Acid.HCL },
+                    autoplay = { onTap(if (acid == Acid.HCL) "Flask" else "AcidHCl") },
+                ),
+                LessonStep(
+                    say = Bi("连按「+1 mL」（或向下拖活塞放快）加到 23–24.5 mL，关上活塞，看 pH 计。", "Tap “+1 mL” again and again (or drag the stopcock down) to 23–24.5 mL, shut it, and read the pH meter."),
+                    target = "Stopcock",
+                    done = { nOut in 460..490 && flow == 0f && pending == 0 },
+                    autoplay = { addDrops((480 - nOut).coerceAtLeast(1)) },
+                    insight = Bi("碱已加了九成多，pH 才从 1 升到 3 左右：只要还剩一点酸，pH 就涨得很慢。", "Over 90 % of the base is in, yet pH has only crept from 1 to about 3: while any acid is left, pH rises slowly."),
+                ),
+                LessonStep(
+                    say = Bi("离等当点 25.00 mL 很近了。就在 25.00 mL 前后再加 1 滴（0.05 mL），pH 会变多少？", "Equivalence is at 25.00 mL. Right around it, how much will ONE more drop (0.05 mL) change the pH?"),
+                    options = listOf(
+                        Bi("几乎不变", "Barely at all"),
+                        Bi("约 0.3", "About 0.3"),
+                        Bi("好几个单位", "Several units"),
+                    ),
+                    answer = 2,
+                ),
+                LessonStep(
+                    say = Bi("现在一滴一滴加（按「+1 滴」或捏活塞），直到整瓶变粉红。", "Now add drop by drop (tap “+1 drop” or pinch the stopcock) until the whole flask turns pink."),
+                    target = "Stopcock",
+                    done = { pHAt(nMixed) >= pe },
+                    autoplay = { addDrops((turnDrop() - nOut).coerceAtLeast(1)) },
+                    reveal = true,
+                    insight = Bi("等当点前后各 1 滴，pH 从 4.0 跳到 10.0！酸一用完，一点 OH⁻ 就过量；酚酞只是把这一跳变成颜色。", "One drop either side of equivalence: pH 4.0 → 10.0! Once the acid is gone, a trace of OH⁻ is excess; the dye just shows the jump."),
+                ),
+                LessonStep(
+                    say = Bi("捏醋酸瓶（或「醋酸 CH₃COOH → 装入」）换成弱酸，加到约 12.5 mL，看曲线。", "Pinch the acetic acid bottle (or “CH₃COOH → fill”) for a weak acid, add about 12.5 mL, and watch the curve."),
+                    target = "AcidAc",
+                    onEnter = { mark = setups },
+                    done = { setups > mark && acid == Acid.ACETIC && nMixed >= 240 },
+                    autoplay = { if (acid != Acid.ACETIC || setups == mark) onTap("AcidAc"); addDrops((250 - nOut).coerceAtLeast(1)) },
+                    insight = Bi("弱酸先有一段平缓的缓冲区：加到一半（12.5 mL）时 pH = pKa = 4.76；等当点 pH 8.73，高于 7。", "A weak acid has a flat buffer region: half-way (12.5 mL) pH = pKa = 4.76; at equivalence pH is 8.73, above 7."),
+                ),
+            ),
+            challenge = Challenge(
+                say = Bi("滴到变色就关上活塞，误差在 ±0.05 mL（1 滴）以内。先快后慢！", "Stop at the colour change with the stopcock shut, within ±0.05 mL (one drop). Fast first, then slow!"),
+                progress = {
+                    val err = nMixed * DROP - tit.veqMl
+                    if (holdT > 0f) tr("已变色、活塞已关：误差 %+.2f mL", "Turned, stopcock shut: error %+.2f mL").format(err)
+                    else if (nOut * DROP > tit.veqMl + DROP + 1e-9) tr("V = %.2f mL · 已过等当点 %.2f mL —— 捏烧瓶重来", "V = %.2f mL · %.2f mL past equivalence: pinch the flask to restart").format(nOut * DROP, nOut * DROP - tit.veqMl)
+                    else tr("V = %.2f mL · 距等当点 %.2f mL", "V = %.2f mL · %.2f mL to equivalence").format(nOut * DROP, maxOf(0.0, tit.veqMl - nOut * DROP))
+                },
+                done = { holdT > 0.5f && abs(nMixed * DROP - tit.veqMl) <= DROP + 1e-9 },
+                // a careful student: a suitable dye, start over if past the end, run to the turning drop, stop
+                autoplay = {
+                    if (flow > 0f || pending > 0) onTap("Stopcock")
+                    if (abs(indicatorError()) > 0.1) onTap("Ind0")
+                    if (nOut > turnDrop()) onTap("Flask")
+                    if (turnDrop() > nOut) addDrops(turnDrop() - nOut)
+                },
+            ),
+        )
     }
 
     /** What the next single drop means (said before it lands). */
